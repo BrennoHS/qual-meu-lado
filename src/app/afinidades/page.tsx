@@ -6,8 +6,8 @@ import { SiteHeader } from "@/components/site/site-header";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Teste de afinidade política",
-  description: "Com que lado você se identifica mais? 24 afirmações, sim ou não, em 4 minutos. Indicador individual, calculado só no seu navegador.",
+  title: "Teste político: você é de esquerda, de direita ou de centro?",
+  description: "Descubra com que lado você se identifica mais: 24 afirmações rápidas (sim, não ou depende), em 4 minutos e sem cadastro. Metodologia aberta, respostas só no seu celular.",
   alternates: { canonical: "/afinidades" },
 };
 

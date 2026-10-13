@@ -13,8 +13,10 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const p = await getPerspective(lado);
   if (!p) return {};
   const ch = p.chapters.find((c) => c.slug === cap) ?? p.chapters[0];
-  const title = cap && ch ? `${ch.title} · ${p.name}` : `Explorar a ${p.name.toLowerCase()}`;
-  const description = cap && ch ? `${ch.kicker} Veja como a esquerda e a direita respondem — em telas curtas, com fontes.` : p.heroDescription;
+  const title = cap && ch ? `${ch.title} · ${p.name}` : `O que é ser de ${p.name.toLowerCase()}? Ideias, argumentos e críticas`;
+  const description = cap && ch
+    ? `${ch.kicker} Veja como a esquerda e a direita respondem — em telas curtas, com fontes.`
+    : `${p.heroDescription} Entenda em telas curtas e linguagem simples, com fontes — e veja como o outro lado responde.`;
   return {
     title,
     description,

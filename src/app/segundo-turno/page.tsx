@@ -11,7 +11,7 @@ import { orderForHome } from "@/lib/election";
 
 export const revalidate = 300;
 export const metadata: Metadata = {
-  title: "2º turno 2026: compare as propostas",
+  title: "Propostas de Lula e Flávio Bolsonaro: compare os planos de governo (2º turno 2026)",
   description: "As propostas de Flávio Bolsonaro e Lula lado a lado, em 8 temas, com trechos literais dos planos de governo registrados no TSE. Sem ranking e sem recomendação de voto.",
   alternates: { canonical: "/segundo-turno" },
   openGraph: { images: [{ url: "/og/tema/geral", width: 1200, height: 630 }] },

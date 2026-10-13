@@ -59,8 +59,8 @@ Arquitetura recomendada (simples, barata e escalável para um pico de compartilh
 
 ### 4b. E-mail (contato@qualmeulado.com.br)
 Dois serviços, cada um com seus registros de DNS (todos em Registro.br → domínio → **DNS → Editar zona**):
-- **Zoho Mail (grátis)** — a caixa de entrada `contato@`: um `TXT` de verificação, três `MX` na raiz e um `TXT` de SPF (`v=spf1 include:zoho.com ~all`), mais o DKIM que o Zoho mostrar.
-- **Resend (grátis até 3.000/mês)** — o envio do formulário de anúncios: registros no subdomínio `send` (MX + TXT) e um `TXT` de DKIM (`resend._domainkey`). Não conflitam com os do Zoho.
+- **KingHost (Email Pro)** — a caixa de entrada `contato@`. **Não troque os nameservers** para os da KingHost: copie do painel KingHost (*Gerenciar DNS* do domínio) os registros de e-mail — `MX` (prioridade 5), `A` de `imap`/`smtp`/`pop`/`webmail` e o `TXT` de SPF — e crie iguais no Registro.br. Ignore avisos de hospedagem: o site fica na Vercel.
+- **Resend (grátis até 3.000/mês)** — o envio do formulário de anúncios: registros no subdomínio `send` (MX + TXT) e um `TXT` de DKIM (`resend._domainkey`). Não conflitam com os da KingHost (o SPF da raiz continua sendo só o da KingHost).
 - Depois de verificado, crie a chave em *Resend → API Keys* e cadastre na Vercel: `RESEND_API_KEY`, `MAIL_FROM` (`DOIS LADOS <site@qualmeulado.com.br>`) e `CONTACT_EMAIL` (`contato@qualmeulado.com.br`).
 - Sem essas variáveis, o formulário continua funcionando: as mensagens ficam em `/admin` → Relatos.
 
@@ -71,6 +71,11 @@ Dois serviços, cada um com seus registros de DNS (todos em Registro.br → dom�
 - [ ] Testar no celular: home → um lado → teste → card de stories (o QR leva ao site certo?).
 - [ ] Prévia do link no WhatsApp: cole `https://seudominio.com.br/lado/esquerda?p=20` numa conversa consigo mesmo.
 - [ ] Trocar a senha do admin e ativar o "quatro olhos" (`EDITORIAL_REQUIRE_SECOND_REVIEWER=true`).
+
+### 6. Google e Bing (SEO)
+- [Google Search Console](https://search.google.com/search-console) → *Adicionar propriedade* → **Domínio** `qualmeulado.com.br` → crie no Registro.br o `TXT` que ele mostrar (verifica todo o domínio). Alternativa: tipo *Prefixo do URL* + `GOOGLE_SITE_VERIFICATION` na Vercel.
+- Em *Sitemaps*, envie `https://qualmeulado.com.br/sitemap.xml`. Em *Inspeção de URL*, peça indexação da home, de `/afinidades`, `/explorar/esquerda`, `/explorar/direita` e `/segundo-turno`.
+- [Bing Webmaster Tools](https://www.bing.com/webmasters): dá para importar direto do Search Console.
 
 ## Observações técnicas
 - O limite de requisições (`src/lib/security/rate-limit.ts`) é em memória. Na Vercel cada instância tem o seu; para algo mais robusto, troque o `store` por Upstash Redis mantendo a interface.

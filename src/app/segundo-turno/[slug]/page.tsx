@@ -13,7 +13,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   if (!data) return {};
   const round = ROUNDS.find((r) => r.slug === tema);
   // Link de um tema: título e imagem mostram AS DUAS candidaturas (nunca só uma).
-  const title = round ? `${round.label}: o que propõem ${data.candidate.ballotName} e ${data.rival.ballotName}` : `Propostas de ${data.candidate.ballotName} · 2º turno 2026`;
+  const title = round ? `${round.label}: o que propõem ${data.candidate.ballotName} e ${data.rival.ballotName}` : `Propostas de ${data.candidate.ballotName} 2026: plano de governo em 8 temas`;
   const description = round
     ? `${round.question} Compare as duas propostas, com o trecho do plano registrado no TSE. Sem ranking e sem recomendação de voto.`
     : `As propostas principais de ${data.candidate.ballotName} em 8 temas, com o trecho exato do plano de governo registrado no TSE. Sem ranking e sem recomendação de voto.`;
