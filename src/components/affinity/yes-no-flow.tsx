@@ -132,7 +132,7 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
   const current = answers[s.key];
 
   return (
-    <div className="relative flex min-h-[calc(100svh-3.5rem)] flex-col overflow-hidden">
+    <div className="relative flex h-[calc(100svh-3.5rem-1px)] flex-col overflow-hidden">
       {/* brilho de fundo que pulsa a cada resposta */}
       <AnimatePresence>
         {stamp && (
@@ -149,7 +149,7 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
       </AnimatePresence>
 
       {/* Progresso em rodadas */}
-      <div className="wrap relative pt-5">
+      <div className="wrap relative shrink-0 pt-3 md:pt-5">
         <div className="flex items-center justify-between gap-4 font-mono text-xs text-ash">
           <span className="flex items-center gap-2">
             <span className="text-paper">
@@ -161,9 +161,12 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
             </m.span>
             de {total}
           </span>
-          <Link href="/afinidades/resultado" className="link-u text-paper">
-            {answeredCount === total ? "Ver minha afinidade" : "Ver indicador parcial"}
-          </Link>
+          <span className="flex items-center gap-3">
+            <span className="hidden items-center gap-1 lg:inline-flex"><Lock aria-hidden className="h-3 w-3" /> só neste navegador</span>
+            <Link href="/afinidades/resultado" className="link-u text-paper">
+              {answeredCount === total ? "Ver minha afinidade" : "Ver indicador parcial"}
+            </Link>
+          </span>
         </div>
         <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${rounds}, minmax(0, 1fr))` }} aria-hidden>
           {Array.from({ length: rounds }).map((_, r) => (
@@ -200,8 +203,8 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
       </AnimatePresence>
 
       {/* Baralho de afirmações */}
-      <div className="wrap relative flex flex-1 flex-col justify-center py-6 md:py-10">
-        <div className="relative mx-auto w-full max-w-4xl">
+      <div className="wrap relative flex min-h-0 flex-1 flex-col justify-center py-3 md:py-6">
+        <div className="relative mx-auto flex max-h-full w-full max-w-4xl">
           {[2, 1].map((d) => (
             <span key={d} aria-hidden className="absolute inset-0 rounded-2xl border border-line bg-graphite-2" style={{ transform: `translateY(${d * 10}px) scale(${1 - d * 0.03})`, opacity: 0.5 - d * 0.15 }} />
           ))}
@@ -214,22 +217,22 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
               animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
               exit="exit"
               transition={{ type: "spring", stiffness: 220, damping: 24 }}
-              className="relative rounded-2xl border border-paper/25 bg-graphite-2 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-10"
+              className="relative max-h-full w-full overflow-y-auto overscroll-contain rounded-2xl border border-paper/25 bg-graphite-2 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-8"
             >
               <div className="flex items-center justify-between gap-4">
                 <span className="inline-flex items-center gap-2 rounded-full border border-paper/20 px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-paper/80">
                   Tema: {s.dimensionName}
                 </span>
-                <DimensionArt dimension={s.dimensionKey} className="h-14 w-20 shrink-0 text-paper/75 md:h-24 md:w-36" />
+                <DimensionArt dimension={s.dimensionKey} className="h-12 w-[4.5rem] shrink-0 text-paper/75 md:h-20 md:w-28" />
               </div>
-              <p className="kicker mt-4">Você concorda?</p>
-              <CardTitle className="mt-2 font-display text-[clamp(1.45rem,4.6vw,3rem)] font-semibold leading-[1.12] tracking-tight">
+              <p className="kicker mt-3">Você concorda?</p>
+              <CardTitle className="mt-1.5 font-display text-[clamp(1.3rem,4.4vw,2.6rem)] font-semibold leading-[1.12] tracking-tight">
                 “<Gloss text={s.text} />”
               </CardTitle>
-              <p className="mt-4 max-w-2xl text-paper/70">
+              <p className="mt-3 max-w-2xl text-[0.95rem] text-paper/70 md:text-base">
                 <Gloss text={s.context} />
               </p>
-              <button type="button" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)} className="kicker mt-5 inline-flex min-h-11 w-fit items-center gap-2 text-paper">
+              <button type="button" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)} className="kicker mt-3 inline-flex min-h-10 w-fit items-center gap-2 text-paper">
                 <span aria-hidden className={`inline-flex transition-transform ${expanded ? "rotate-90" : ""}`}>
                   <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
                 </span>
@@ -258,7 +261,7 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
       </div>
 
       {/* Respostas */}
-      <div className="sticky bottom-0 z-10 bg-graphite/95 backdrop-blur-sm">
+      <div className="z-10 shrink-0 bg-graphite/95 backdrop-blur-sm">
         <div className="relative grid grid-cols-2 border-t border-line">
           {(["agree", "disagree"] as const).map((a) => {
             const on = stamp === a || (!stamp && current === a);
@@ -270,9 +273,9 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
                 aria-pressed={current === a}
                 whileTap={{ scale: 0.96 }}
                 animate={stamp ? { opacity: stamp === a ? 1 : 0.3 } : { opacity: 1 }}
-                className={`group relative flex h-[20svh] min-h-28 max-h-52 flex-col items-center justify-center gap-1 overflow-hidden transition-colors ${on ? "bg-paper text-graphite" : "hover:bg-graphite-2"}`}
+                className={`group relative flex h-[13svh] min-h-[4.5rem] max-h-32 flex-col items-center justify-center gap-1 overflow-hidden transition-colors ${on ? "bg-paper text-graphite" : "hover:bg-graphite-2"}`}
               >
-                <span className="display text-[clamp(2.8rem,12vw,7rem)]">{a === "agree" ? "Sim" : "Não"}</span>
+                <span className="display text-[clamp(2.2rem,9vw,4.8rem)]">{a === "agree" ? "Sim" : "Não"}</span>
                 <span className="kicker" style={{ color: "inherit", opacity: 0.75 }}>
                   {a === "agree" ? "Concordo" : "Discordo"} <span className="hidden md:inline">· tecla {a === "agree" ? "S" : "N"}</span>
                 </span>
@@ -282,19 +285,18 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
           <span aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-paper/80 shadow-[0_0_20px_2px_rgba(245,243,238,0.25)]" />
         </div>
         <div className="grid grid-cols-4 border-t border-line">
-          <button type="button" onClick={() => goTo(index - 1)} disabled={index === 0} className="chip min-h-14 justify-center gap-1.5 border-0 border-r disabled:opacity-30">
+          <button type="button" onClick={() => goTo(index - 1)} disabled={index === 0} className="chip min-h-12 justify-center gap-1.5 border-0 border-r disabled:opacity-30">
             <ArrowLeft aria-hidden className="h-4 w-4" /> Voltar
           </button>
           {(["depends", "unknown"] as const).map((a) => (
-            <button key={a} type="button" onClick={() => answer(a)} aria-pressed={current === a} className="chip min-h-14 justify-center border-0 border-r">
+            <button key={a} type="button" onClick={() => answer(a)} aria-pressed={current === a} className="chip min-h-12 justify-center border-0 border-r">
               {a === "depends" ? "Depende" : "Não sei"}
             </button>
           ))}
-          <button type="button" onClick={() => goTo(index + 1)} disabled={index === total - 1} className="chip min-h-14 justify-center gap-1.5 border-0 disabled:opacity-40">
+          <button type="button" onClick={() => goTo(index + 1)} disabled={index === total - 1} className="chip min-h-12 justify-center gap-1.5 border-0 disabled:opacity-40">
             Pular <ArrowRight aria-hidden className="h-4 w-4" />
           </button>
         </div>
-        <p className="py-2 text-center font-mono text-[0.7rem] text-ash">Respostas salvas só neste navegador</p>
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ export const NAV = [
   { href: "/sua-escolha", label: "Dizer com minhas palavras" },
   { href: "/meu-percurso", label: "Seu percurso (e apagar dados)" },
   { href: "/como-funciona", label: "Como funciona o site" },
+  { href: "/anuncie", label: "Anuncie no DOIS LADOS" },
 ];
 
 export function Brand({ className = "" }: { className?: string }) {

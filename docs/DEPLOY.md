@@ -44,6 +44,9 @@ Arquitetura recomendada (simples, barata e escalável para um pico de compartilh
    | `EDITORIAL_REQUIRE_SECOND_REVIEWER` | `true` |
    | `COLLECTIVE_RESULTS_ENABLED` | `false` |
    | `AGGREGATE_METRICS_ENABLED` | `false` |
+   | `CONTACT_EMAIL` | `contato@qualmeulado.com.br` |
+   | `MAIL_FROM` | `DOIS LADOS <site@qualmeulado.com.br>` |
+   | `RESEND_API_KEY` | chave do Resend (ver 4b) |
 
    `NEXT_PUBLIC_SITE_URL` é o endereço que aparece no card de compartilhamento e no QR code — confira antes de divulgar.
 4. Em *Settings → Functions → Function Region*, escolha **São Paulo (gru1)** — a mesma região do banco.
@@ -53,6 +56,13 @@ Arquitetura recomendada (simples, barata e escalável para um pico de compartilh
 1. Na Vercel: *Settings → Domains → Add* o domínio com e sem `www`.
 2. No Registro.br, em *DNS*, crie os registros que a Vercel mostrar (normalmente um `A` para a raiz e um `CNAME` para `www`). O HTTPS é emitido sozinho.
 3. Propagação: de minutos a algumas horas.
+
+### 4b. E-mail (contato@qualmeulado.com.br)
+Dois serviços, cada um com seus registros de DNS (todos em Registro.br → domínio → **DNS → Editar zona**):
+- **Zoho Mail (grátis)** — a caixa de entrada `contato@`: um `TXT` de verificação, três `MX` na raiz e um `TXT` de SPF (`v=spf1 include:zoho.com ~all`), mais o DKIM que o Zoho mostrar.
+- **Resend (grátis até 3.000/mês)** — o envio do formulário de anúncios: registros no subdomínio `send` (MX + TXT) e um `TXT` de DKIM (`resend._domainkey`). Não conflitam com os do Zoho.
+- Depois de verificado, crie a chave em *Resend → API Keys* e cadastre na Vercel: `RESEND_API_KEY`, `MAIL_FROM` (`DOIS LADOS <site@qualmeulado.com.br>`) e `CONTACT_EMAIL` (`contato@qualmeulado.com.br`).
+- Sem essas variáveis, o formulário continua funcionando: as mensagens ficam em `/admin` → Relatos.
 
 ### 5. Antes de divulgar (checklist)
 - [ ] Revisão humana dos “pontos de atenção” das propostas e das críticas de cada lado.

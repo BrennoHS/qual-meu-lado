@@ -10,6 +10,7 @@ const institutional = [
   { href: "/privacidade", label: "Privacidade" },
   { href: "/termos", label: "Termos de uso" },
   { href: "/contato", label: "Reportar erro / contato" },
+  { href: "/anuncie", label: "Anuncie no DOIS LADOS" },
   { href: "/apoie", label: "Apoie o projeto" },
   { href: "/creditos", label: "Créditos das imagens" },
 ];

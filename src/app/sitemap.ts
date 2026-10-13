@@ -12,7 +12,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     db.theme.findMany({ where: visible, select: { slug: true, updatedAt: true } }),
     db.candidate.findMany({ where: visible, select: { slug: true, updatedAt: true } }),
   ]);
-  const fixed = ["", "/explorar/esquerda", "/explorar/direita", "/afinidades", "/temas", "/linha-do-tempo", "/mitos", "/segundo-turno", "/fontes", "/creditos", "/apoie", "/como-funciona", "/como-construimos", "/politica-editorial", "/correcoes", "/privacidade", "/termos", "/contato"];
+  const fixed = ["", "/explorar/esquerda", "/explorar/direita", "/afinidades", "/temas", "/linha-do-tempo", "/mitos", "/segundo-turno", "/fontes", "/creditos", "/apoie", "/anuncie", "/como-funciona", "/como-construimos", "/politica-editorial", "/correcoes", "/privacidade", "/termos", "/contato"];
   return [
     ...fixed.map((p) => ({ url: `${base}${p}`, changeFrequency: "weekly" as const })),
     ...chapters.map((c) => ({ url: `${base}/explorar/${c.perspective.slug}/${c.slug}`, lastModified: c.updatedAt })),

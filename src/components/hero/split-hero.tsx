@@ -9,7 +9,6 @@ import * as m from "motion/react-m";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { useTransitionNav } from "@/components/transition/transition-provider";
 import { CANDIDATE_PHOTOS, daysUntil, SECOND_ROUND_DATE } from "@/lib/election";
-import { ResumeLink } from "@/components/reel/resume-toast";
 
 type SideInfo = { href: string; name: string; tagline: string; description: string };
 export type HeroCandidate = { slug: string; ballotName: string; number: number | null; partyAcronym: string; runningMate: string | null };
@@ -249,9 +248,6 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
             <ModeSwitch mode={mode} onChange={toggle} />
           </div>
         )}
-        <div className="pointer-events-auto mt-3 flex justify-center md:mt-5">
-          <ResumeLink />
-        </div>
       </m.div>
 
       <div className="relative flex-1">
@@ -284,7 +280,7 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
                     <span className="h-full w-1/2 bg-esq" />
                     <span className="h-full w-1/2 bg-dir" />
                   </span>
-                  Descobrir minhas afinidades
+                  Descobrir minha afinidade
                 </Link>
               </m.span>
             )}
