@@ -1,0 +1,68 @@
+{
+  "name": "dois-lados",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DOIS LADOS — experiência interativa de educação política brasileira",
+  "scripts": {
+    "postinstall": "prisma generate",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "db:local": "node scripts/local-postgres.mjs",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx --env-file=.env prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "links:check": "tsx --env-file=.env scripts/check-links.ts",
+    "admin:create": "tsx --env-file=.env scripts/create-admin.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:seed:prod": "tsx prisma/seed.ts",
+    "admin:create:prod": "tsx scripts/create-admin.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@fontsource/space-grotesk": "^5.2.8",
+    "@prisma/client": "6.19.3",
+    "@radix-ui/react-dialog": "1.1.15",
+    "@radix-ui/react-popover": "^1.1.15",
+    "bcryptjs": "3.0.3",
+    "lucide-react": "^0.468.0",
+    "motion": "12.43.0",
+    "next": "15.5.27",
+    "qrcode": "^1.5.4",
+    "react": "19.1.9",
+    "react-dom": "19.1.9",
+    "server-only": "^0.0.1",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@tailwindcss/postcss": "4.1.18",
+    "@types/node": "22.19.1",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "19.1.17",
+    "@types/react-dom": "19.1.11",
+    "embedded-postgres": "17.10.0-beta.17",
+    "prisma": "6.19.3",
+    "tailwindcss": "4.1.18",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  },
+  "allowScripts": {
+    "@embedded-postgres/windows-x64@17.10.0-beta.17": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true,
+    "prisma@6.19.3": true
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}

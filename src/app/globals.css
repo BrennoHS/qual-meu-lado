@@ -1,0 +1,292 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────
+   DOIS LADOS — design system
+   Regra de equilíbrio: tudo que existe para um lado existe, com o mesmo
+   peso visual, para o outro. Vermelho e azul só diferenciam; nunca
+   julgam. Etiquetas de evidência usam cores fora desse eixo.
+   ───────────────────────────────────────────────────────────────── */
+
+@theme {
+  --color-graphite: #111318;
+  --color-graphite-2: #171a21;
+  --color-graphite-3: #1f232c;
+  --color-line: #2a2f3a;
+  --color-paper: #f5f3ee;
+  --color-ash: #a8abb4;
+
+  --color-esq: #b72e38;
+  --color-esq-deep: #641c27;
+  --color-esq-ink: #f08a91;
+  --color-dir: #2455a4;
+  --color-dir-deep: #142d59;
+  --color-dir-ink: #8db0f0;
+
+  /* Etiquetas editoriais — neutras em relação ao eixo vermelho/azul */
+  --color-ev-fact: #f5f3ee;
+  --color-ev-pro: #7cc7b2;
+  --color-ev-critique: #e5b45e;
+  --color-ev-interp: #c0b3e6;
+  --color-ev-proposal: #d9c9a3;
+  --color-ev-unconfirmed: #a8abb4;
+
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-label), "Arial Narrow", ui-sans-serif, sans-serif;
+
+  --ease-cut: cubic-bezier(0.77, 0, 0.18, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  color-scheme: dark;
+  --accent: var(--color-paper);
+  --accent-deep: var(--color-graphite-3);
+  --accent-ink: var(--color-paper);
+  --gutter: 16px;
+}
+
+[data-side="esquerda"] {
+  --accent: var(--color-esq);
+  --accent-deep: var(--color-esq-deep);
+  --accent-ink: var(--color-esq-ink);
+}
+[data-side="direita"] {
+  --accent: var(--color-dir);
+  --accent-deep: var(--color-dir-deep);
+  --accent-ink: var(--color-dir-ink);
+}
+
+@media (min-width: 768px) {
+  :root { --gutter: 32px; }
+}
+
+html {
+  background: var(--color-graphite);
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 72px;
+}
+
+body {
+  background: var(--color-graphite);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--color-paper); color: var(--color-graphite); }
+
+:focus-visible {
+  outline: 2px solid var(--color-paper);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Grão fotográfico sutil (SVG inline, sem requisição extra) */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* Fonte de rótulos é condensada: compensa o tamanho óptico sem mexer em cada classe. */
+.font-mono, .kicker, .btn { font-size-adjust: 0.56; font-weight: 600; }
+
+@layer components {
+  .wrap { width: 100%; max-width: 1200px; margin-inline: auto; padding-inline: var(--gutter); }
+  .wrap-text { width: 100%; max-width: 760px; margin-inline: auto; padding-inline: var(--gutter); }
+
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-ash);
+  }
+  .display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 0.92;
+    text-transform: uppercase;
+  }
+  .h-section {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    font-size: clamp(1.6rem, 1.1rem + 2vw, 2.6rem);
+  }
+  .lead {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.25rem, 1rem + 1.2vw, 1.85rem);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+    min-height: 48px; padding: 0.75rem 1.25rem;
+    font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase;
+    border: 1px solid var(--color-paper); color: var(--color-paper);
+    transition: background-color .2s, color .2s, transform .2s var(--ease-out-soft);
+  }
+  .btn:hover { background: var(--color-paper); color: var(--color-graphite); }
+  .btn:active { transform: scale(0.98); }
+  .btn-solid { background: var(--color-paper); color: var(--color-graphite); }
+  .btn-solid:hover { background: transparent; color: var(--color-paper); }
+  .btn-ghost { border-color: var(--color-line); }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: .4rem .85rem;
+    border: 1px solid var(--color-line); font-size: .85rem; color: var(--color-ash);
+    transition: border-color .2s, color .2s, background-color .2s;
+  }
+  .chip:hover { color: var(--color-paper); border-color: var(--color-ash); }
+  .chip[aria-pressed="true"], .chip[aria-selected="true"], .chip[aria-current="true"] {
+    color: var(--color-graphite); background: var(--color-paper); border-color: var(--color-paper);
+  }
+
+  .card { background: var(--color-graphite-2); border: 1px solid var(--color-line); }
+  .rule-accent { height: 2px; background: var(--accent); }
+
+  .link-u { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .link-u:hover { text-decoration-thickness: 2px; }
+
+  /* Texto editorial */
+  .rt { font-size: 1.0625rem; line-height: 1.7; color: color-mix(in srgb, var(--color-paper) 88%, transparent); }
+  .rt > * + * { margin-top: 1em; }
+  .rt h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.35rem; letter-spacing: -0.01em; color: var(--color-paper); margin-top: 1.8em; }
+  .rt strong { color: var(--color-paper); font-weight: 600; }
+  .rt ul { list-style: none; padding: 0; }
+  .rt ul li { position: relative; padding-left: 1.4em; }
+  .rt ul li + li { margin-top: .5em; }
+  .rt ul li::before { content: ""; position: absolute; left: 0; top: .78em; width: .7em; height: 1px; background: var(--accent-ink); }
+  .rt ol { padding-left: 1.4em; list-style: decimal; }
+  .rt ol li + li { margin-top: .5em; }
+  .rt-link { text-decoration: underline; text-underline-offset: 3px; color: var(--color-paper); }
+
+  .sr-only-focusable:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+/* Linhas animadas dos universos do hero */
+@keyframes drift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, -50%, 0); } }
+.drift { animation: drift 60s linear infinite; will-change: transform; }
+
+@keyframes pulse-line { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+.pulse-line { animation: pulse-line 4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Conexões lentas: sem animações decorativas */
+@media (prefers-reduced-data: reduce) {
+  .drift, .pulse-line { animation: none; }
+}
+
+/* ── Hero dividido ───────────────────────────────────────────────
+   --split (0–100) vem de um motion value. A orientação é decidida só por
+   CSS: empilhado no celular, lado a lado a partir de 768px. */
+.hero-clip-left, .hero-clip-right { position: absolute; inset: 0; }
+.hero-clip-left { clip-path: inset(0 0 calc((100 - var(--split, 50)) * 1%) 0); }
+.hero-clip-right { clip-path: inset(calc(var(--split, 50) * 1%) 0 0 0); }
+.hero-divider { position: absolute; left: 0; right: 0; height: 2px; top: calc(var(--split, 50) * 1%); translate: 0 -1px; }
+.hero-cta { position: absolute; left: 50%; top: calc(var(--split, 50) * 1%); translate: -50% -50%; }
+@media (min-width: 768px) {
+  .hero-clip-left { clip-path: inset(0 calc((100 - var(--split, 50)) * 1%) 0 0); }
+  .hero-clip-right { clip-path: inset(0 0 0 calc(var(--split, 50) * 1%)); }
+  .hero-divider { top: 0; bottom: 0; right: auto; height: auto; width: 2px; left: calc(var(--split, 50) * 1%); translate: -1px 0; }
+  .hero-cta { top: auto; bottom: 4.5vh; left: calc(var(--split, 50) * 1%); translate: -50% 0; }
+}
+
+/* Faixa rolável sem barra nativa; a borda esmaece para indicar que há mais. */
+.scroll-strip { scrollbar-width: none; mask-image: linear-gradient(90deg, #000 85%, transparent); }
+.scroll-strip::-webkit-scrollbar { display: none; }
+
+/* ── Reel ────────────────────────────────────────────────────────
+   Barra de rolagem escondida (a navegação é o deslize/os botões). */
+.reel-scroller { scrollbar-width: none; }
+.reel-scroller::-webkit-scrollbar { display: none; }
+
+/* Parágrafos entram em sequência quando a tela fica ativa. */
+.reel-rt > * { opacity: 0; transform: translateY(18px); transition: opacity .6s var(--ease-out-soft), transform .6s var(--ease-out-soft); }
+[data-active="true"] .reel-rt > * { opacity: 1; transform: none; }
+[data-active="true"] .reel-rt > *:nth-child(1) { transition-delay: .25s; }
+[data-active="true"] .reel-rt > *:nth-child(2) { transition-delay: .55s; }
+[data-active="true"] .reel-rt > *:nth-child(3) { transition-delay: .85s; }
+[data-active="true"] .reel-rt > *:nth-child(4) { transition-delay: 1.15s; }
+[data-active="true"] .reel-rt > *:nth-child(n+5) { transition-delay: 1.4s; }
+
+/* Marca-texto: o negrito é "grifado" na cor do lado. */
+[data-side] .rt strong {
+  background-image: linear-gradient(transparent 48%, color-mix(in srgb, var(--accent) 50%, transparent) 48%, color-mix(in srgb, var(--accent) 50%, transparent) 96%, transparent 96%);
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  padding-inline: .08em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.reel-rt strong { transition: background-size .9s var(--ease-out-soft) 1s; }
+[data-active="true"] .reel-rt strong { background-size: 100% 100%; }
+
+/* Na leitura completa, o grifo acompanha a rolagem (navegadores com scroll-driven animations). */
+@keyframes hl-sweep { to { background-size: 100% 100%; } }
+@supports (animation-timeline: view()) {
+  [data-side] .rt:not(.reel-rt) strong { animation: hl-sweep linear both; animation-timeline: view(); animation-range: entry 35% cover 45%; }
+}
+@supports not (animation-timeline: view()) {
+  [data-side] .rt:not(.reel-rt) strong { background-size: 100% 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reel-rt > * { opacity: 1; transform: none; }
+  [data-side] .rt strong { background-size: 100% 100%; animation: none; }
+}
+
+/* Palavra do glossário: sublinhado pontilhado, toque para entender. */
+.gloss {
+  display: inline; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
+  text-decoration: underline dotted; text-decoration-thickness: 2px; text-underline-offset: 0.22em;
+  text-decoration-color: color-mix(in srgb, var(--accent-ink) 80%, transparent);
+  cursor: help; border-radius: 2px;
+}
+.gloss:hover, .gloss[data-state="open"] { background: color-mix(in srgb, var(--accent) 30%, transparent); text-decoration-style: solid; }
+.gloss-pop { animation: gloss-in .22s var(--ease-out-soft); transform-origin: var(--radix-popover-content-transform-origin); }
+@keyframes gloss-in { from { opacity: 0; transform: translateY(4px) scale(.96); } }
+
+/* Convite para o teste de afinidade: discreto — fundo escuro como os demais
+   botões; o vermelho e o azul aparecem só numa borda fina que flui devagar. */
+.btn.btn-afinidade {
+  color: var(--color-paper);
+  border: 1.5px solid transparent;
+  background:
+    linear-gradient(var(--color-graphite), var(--color-graphite)) padding-box,
+    linear-gradient(110deg, var(--color-esq-ink), var(--color-dir-ink), var(--color-esq-ink)) border-box;
+  background-size: 100% 100%, 300% 100%;
+  animation: afinidade-flow 8s linear infinite;
+}
+.btn.btn-afinidade:hover {
+  color: var(--color-paper);
+  background:
+    linear-gradient(110deg, color-mix(in srgb, var(--color-esq-deep) 55%, var(--color-graphite)), color-mix(in srgb, var(--color-dir-deep) 55%, var(--color-graphite))) padding-box,
+    linear-gradient(110deg, var(--color-esq-ink), var(--color-dir-ink), var(--color-esq-ink)) border-box;
+  background-size: 100% 100%, 300% 100%;
+}
+@keyframes afinidade-flow { to { background-position: 0 0, -300% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .btn.btn-afinidade { animation: none; }
+}

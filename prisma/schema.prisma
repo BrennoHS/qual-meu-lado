@@ -1,0 +1,541 @@
+// DOIS LADOS — modelo de dados
+// Princípios:
+//  • Conteúdo editorial vive no banco (não em componentes React).
+//  • Toda entidade publicável percorre o fluxo editorial (EditorialStatus).
+//  • Nenhuma tabela guarda respostas, opiniões ou inferências políticas de visitantes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  /// Conexão do site. No Supabase: a do pooler (porta 6543, ?pgbouncer=true).
+  url       = env("DATABASE_URL")
+  /// Conexão direta, usada só por migrações. Localmente é igual à DATABASE_URL.
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  REVIEWER
+  EDITOR
+}
+
+/// Rascunho → Em revisão → Verificado → Publicado → Desatualizado
+enum EditorialStatus {
+  DRAFT
+  IN_REVIEW
+  VERIFIED
+  PUBLISHED
+  OUTDATED
+}
+
+/// Classificação epistemológica de uma afirmação.
+enum ClaimType {
+  FACT
+  INTERPRETATION
+  PROPOSAL
+  PREDICTION
+  OPINION
+}
+
+enum SourceKind {
+  OFFICIAL
+  LEGISLATION
+  DATA
+  ACADEMIC
+  BOOK
+  JOURNALISM
+  FACT_CHECK
+  CAMPAIGN
+  DEMO
+  OTHER
+}
+
+enum LinkStatus {
+  UNKNOWN
+  OK
+  BLOCKED
+  BROKEN
+}
+
+enum Side {
+  LEFT
+  RIGHT
+}
+
+enum Scope {
+  BRAZIL
+  INTERNATIONAL
+}
+
+enum MythVerdict {
+  CONFIRMED
+  FALSE
+  PARTIAL
+  CONTEXT_DEPENDENT
+  INSUFFICIENT_EVIDENCE
+}
+
+enum ProposalStatus {
+  PROMISE
+  IN_LEGISLATIVE_PROCESS
+  PARTIALLY_IMPLEMENTED
+  IMPLEMENTED
+  ABANDONED
+  UNKNOWN
+}
+
+/// Relação convencional de uma dimensão com o eixo esquerda–direita.
+enum AxisRelation {
+  CONVENTIONAL
+  WEAK
+  NONE
+}
+
+// ─── Pessoas e segurança ───────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         Role       @default(EDITOR)
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  sessions     Session[]
+  auditLogs    AuditLog[]
+  revisions    Revision[]
+}
+
+/// Sessões administrativas. Guardamos apenas o hash SHA-256 do token.
+/// Não armazenamos IP.
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String?
+  entityId   String?
+  summary    String
+  meta       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+/// Histórico de versões de qualquer entidade editorial.
+model Revision {
+  id         String          @id @default(cuid())
+  entityType String
+  entityId   String
+  version    Int
+  status     EditorialStatus
+  snapshot   Json
+  note       String?
+  authorId   String?
+  author     User?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt  DateTime        @default(now())
+
+  @@index([entityType, entityId])
+}
+
+// ─── Camada de evidências ──────────────────────────────────────────
+
+model Source {
+  id             String          @id @default(cuid())
+  slug           String          @unique
+  title          String
+  url            String?
+  institution    String
+  author         String?
+  kind           SourceKind
+  publishedLabel String?
+  publishedAt    DateTime?
+  verifiedAt     DateTime?
+  excerpt        String?
+  notes          String?
+  linkStatus     LinkStatus      @default(UNKNOWN)
+  linkCheckedAt  DateTime?
+  linkHttpCode   Int?
+  isDemo         Boolean         @default(false)
+  status         EditorialStatus @default(DRAFT)
+  version        Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  claims         ClaimSource[]
+  proposals      Proposal[]
+  declarations   Declaration[]
+}
+
+/// Afirmação verificável. É a unidade mínima da camada de evidências.
+model Claim {
+  id          String          @id @default(cuid())
+  key         String          @unique
+  text        String
+  type        ClaimType
+  excerpt     String?
+  context     String?
+  limitations String?
+  isDemo      Boolean         @default(false)
+  status      EditorialStatus @default(DRAFT)
+  verifiedAt  DateTime?
+  version     Int             @default(1)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  sources     ClaimSource[]
+}
+
+model ClaimSource {
+  claimId  String
+  sourceId String
+  locator  String?
+  claim    Claim   @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  source   Source  @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+
+  @@id([claimId, sourceId])
+}
+
+// ─── Jornada editorial ─────────────────────────────────────────────
+
+model Perspective {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  side            Side            @unique
+  name            String
+  tagline         String
+  heroDescription String
+  intro           String
+  status          EditorialStatus @default(DRAFT)
+  version         Int             @default(1)
+  updatedAt       DateTime        @updatedAt
+  chapters        Chapter[]
+}
+
+/// `blocks` é um array JSON validado por Zod (src/lib/content/blocks.ts).
+model Chapter {
+  id            String          @id @default(cuid())
+  perspectiveId String
+  perspective   Perspective     @relation(fields: [perspectiveId], references: [id], onDelete: Cascade)
+  number        Int
+  slug          String
+  title         String
+  kicker        String
+  summary       String
+  /// "Em 30 segundos": 3 ideias essenciais, em linguagem simples.
+  keyPoints     String[]        @default([])
+  blocks        Json
+  deepDive      String?
+  status        EditorialStatus @default(DRAFT)
+  version       Int             @default(1)
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([perspectiveId, slug])
+  @@unique([perspectiveId, number])
+}
+
+/// Correntes ideológicas (socialdemocracia, conservadorismo, …).
+model Current {
+  id       String          @id @default(cuid())
+  slug     String          @unique
+  name     String
+  family   String
+  side     Side?
+  summary  String
+  keyIdeas String[]
+  thinkers String[]
+  inBrazil String?
+  /// Posição didática aproximada: economia (-1 Estado … +1 mercado)
+  econX    Float?
+  /// Posição didática aproximada: costumes (-1 mudança … +1 tradição)
+  socialY  Float?
+  order    Int             @default(0)
+  status   EditorialStatus @default(DRAFT)
+  version  Int             @default(1)
+  updatedAt DateTime       @updatedAt
+}
+
+model Theme {
+  id            String          @id @default(cuid())
+  slug          String          @unique
+  name          String
+  description   String
+  valueConflict String?
+  order         Int             @default(0)
+  status        EditorialStatus @default(DRAFT)
+  version       Int             @default(1)
+  updatedAt     DateTime        @updatedAt
+  positions     ThemePosition[]
+}
+
+model ThemePosition {
+  id        String          @id @default(cuid())
+  themeId   String
+  theme     Theme           @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  side      Side
+  summary   String
+  points    String[]
+  nuances   String
+  claimKeys String[]
+  status    EditorialStatus @default(DRAFT)
+  version   Int             @default(1)
+  updatedAt DateTime        @updatedAt
+
+  @@unique([themeId, side])
+}
+
+model TimelineEvent {
+  id        String          @id @default(cuid())
+  slug      String          @unique
+  year      Int
+  dateLabel String
+  title     String
+  body      String
+  scope     Scope
+  tags      String[]
+  claimKey  String?
+  order     Int             @default(0)
+  status    EditorialStatus @default(DRAFT)
+  version   Int             @default(1)
+  updatedAt DateTime        @updatedAt
+}
+
+model Myth {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  statement   String
+  verdict     MythVerdict
+  explanation String
+  claimKeys   String[]
+  order       Int             @default(0)
+  status      EditorialStatus @default(DRAFT)
+  version     Int             @default(1)
+  updatedAt   DateTime        @updatedAt
+}
+
+model Curiosity {
+  id       String          @id @default(cuid())
+  slug     String          @unique
+  text     String
+  claimKey String?
+  tags     String[]
+  status   EditorialStatus @default(DRAFT)
+  version  Int             @default(1)
+  updatedAt DateTime       @updatedAt
+}
+
+// ─── Mapa de afinidades (definições — nunca respostas) ─────────────
+
+model Dimension {
+  id          String          @id @default(cuid())
+  key         String          @unique
+  name        String
+  description String
+  poleA       String
+  poleB       String
+  /// Qual polo é convencionalmente associado à esquerda ("A", "B") ou null.
+  leftPole    String?
+  relation    AxisRelation
+  basis       String
+  order       Int             @default(0)
+  status      EditorialStatus @default(DRAFT)
+  version     Int             @default(1)
+  updatedAt   DateTime        @updatedAt
+  statements  Statement[]
+}
+
+model Statement {
+  id                String          @id @default(cuid())
+  key               String          @unique
+  text              String
+  context           String
+  dimensionId       String
+  dimension         Dimension       @relation(fields: [dimensionId], references: [id], onDelete: Restrict)
+  /// +1: concordar aproxima do polo A; -1: aproxima do polo B.
+  direction         Int
+  argumentsAgree    String
+  argumentsDisagree String
+  whyDepends        String?
+  claimKeys         String[]
+  order             Int             @default(0)
+  status            EditorialStatus @default(DRAFT)
+  version           Int             @default(1)
+  updatedAt         DateTime        @updatedAt
+}
+
+// ─── Quem defende o quê ────────────────────────────────────────────
+
+model Election {
+  id         String      @id @default(cuid())
+  slug       String      @unique
+  year       Int
+  label      String
+  notes      String?
+  isCurrent  Boolean     @default(false)
+  candidates Candidate[]
+}
+
+model Candidate {
+  id                  String          @id @default(cuid())
+  slug                String          @unique
+  name                String
+  ballotName          String
+  party               String
+  partyAcronym        String
+  office              String
+  jurisdiction        String
+  number              Int?
+  coalition           String?
+  runningMate         String?
+  electionId          String
+  election            Election        @relation(fields: [electionId], references: [id], onDelete: Restrict)
+  photoUrl            String?
+  photoAlt            String?
+  summary             String
+  trajectory          String
+  history             String?
+  officialRegistryUrl String?
+  planUrl             String?
+  isDemo              Boolean         @default(false)
+  status              EditorialStatus @default(DRAFT)
+  version             Int             @default(1)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  proposals           Proposal[]
+  declarations        Declaration[]
+}
+
+model Proposal {
+  id                   String          @id @default(cuid())
+  candidateId          String
+  candidate            Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  themeSlug            String
+  title                String
+  plainSummary         String
+  originalExcerpt      String
+  problem              String
+  instruments          String
+  claimedBenefits      String
+  critiques            String
+  costs                String?
+  implementationStatus ProposalStatus  @default(PROMISE)
+  sourceId             String?
+  source               Source?         @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  /// Página ou seção no documento original (ex.: "p. 75").
+  sourceLocator        String?
+  infoDate             DateTime
+  featured             Boolean         @default(false)
+  /// Pontuação 0–2 em cada critério público de curadoria (ver /como-construimos).
+  criteria             Json?
+  order                Int             @default(0)
+  isDemo               Boolean         @default(false)
+  status               EditorialStatus @default(DRAFT)
+  version              Int             @default(1)
+  updatedAt            DateTime        @updatedAt
+}
+
+model Declaration {
+  id          String          @id @default(cuid())
+  candidateId String
+  candidate   Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  quote       String
+  context     String
+  saidAt      DateTime
+  sourceId    String?
+  source      Source?         @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  isDemo      Boolean         @default(false)
+  status      EditorialStatus @default(DRAFT)
+  version     Int             @default(1)
+  updatedAt   DateTime        @updatedAt
+}
+
+// ─── Site, transparência e governança ──────────────────────────────
+
+model Page {
+  id        String          @id @default(cuid())
+  slug      String          @unique
+  title     String
+  summary   String
+  body      String
+  status    EditorialStatus @default(DRAFT)
+  version   Int             @default(1)
+  updatedAt DateTime        @updatedAt
+}
+
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model Correction {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  entityRef   String?
+  correctedAt DateTime        @default(now())
+  status      EditorialStatus @default(DRAFT)
+  version     Int             @default(1)
+  updatedAt   DateTime        @updatedAt
+}
+
+/// Relatos de erro enviados pelo público. Sem IP; e-mail é opcional.
+/// Retenção recomendada: 180 dias (ver docs/SEGURANCA-E-LGPD.md).
+model ErrorReport {
+  id           String   @id @default(cuid())
+  pageUrl      String
+  message      String
+  contactEmail String?
+  handled      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String
+  credit    String
+  license   String
+  createdAt DateTime @default(now())
+}
+
+/// Funcionalidades condicionais (ex.: resultados coletivos).
+/// Só podem ser habilitadas com referência a parecer jurídico.
+model FeatureFlag {
+  key            String    @id
+  enabled        Boolean   @default(false)
+  legalReviewRef String?
+  approvedBy     String?
+  approvedAt     DateTime?
+  notes          String
+  updatedAt      DateTime  @updatedAt
+}
+
+/// Medição AGREGADA (desligada por padrão; ver /admin/funcionalidades).
+/// Só contadores diários por chave fixa. Sem IP, sem cookie, sem identificador,
+/// sem horário exato, sem nada que permita reconstruir o caminho de uma pessoa.
+model MetricDaily {
+  day   String // AAAA-MM-DD
+  event String // lista fechada (ver src/lib/metrics/schema.ts)
+  key   String // ex.: "esquerda:argumentos-cover"
+  count Int    @default(0)
+
+  @@id([day, event, key])
+}

@@ -1,0 +1,18 @@
+# Alternativa ao PostgreSQL embutido: banco em contêiner.
+#   docker compose up -d
+# Use DATABASE_URL="postgresql://doislados:doislados@localhost:5433/doislados?schema=public"
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: doislados
+      POSTGRES_PASSWORD: doislados
+      POSTGRES_DB: doislados
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
