@@ -225,7 +225,7 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
             </m.h2>
           )}
           <m.div variants={rise}>
-            <RichText text={slide.body} gloss className="rt reel-rt text-[1.12rem] md:text-[1.2rem]" />
+            <StepText body={slide.body} active={active} />
           </m.div>
         </Stage>
       );
@@ -350,137 +350,74 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
 }
 
 function CoverSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind: "cover" }>; active: boolean; data: SideReelData }) {
-  const { next } = useReel();
-  const [flip, setFlip] = useState(false);
-  useEffect(() => {
-    if (!active) setFlip(false);
-  }, [active]);
-  const cp = slide.counterpart;
   const seenOther = useSeenOnOtherSide(data);
   const chapterSlug = data.chapters[slide.seg]?.slug ?? "";
   const skipping = seenOther.has(chapterSlug) && (!!slide.sharedPoints?.length || data.slides.some((s) => s.seg === slide.seg && s.shared));
   const points = skipping ? slide.keyPoints.filter((_, i) => !slide.sharedPoints?.includes(i)) : slide.keyPoints;
   return (
-    <div className="[perspective:1400px]">
-      <AnimatePresence mode="wait" initial={false}>
-        {!flip ? (
-          <m.div key="front" initial={{ rotateY: -90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }} exit={{ rotateY: 90, opacity: 0 }} transition={{ duration: 0.4 }}>
-            <Stage active={active}>
-              {/* progresso dos 7 capítulos: a pessoa vê que está de passagem */}
-              <m.div variants={rise} className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5" aria-hidden>
-                  {data.chapters.map((c, i) => (
-                    <m.span
-                      key={c.slug}
-                      className={`block h-2 rounded-full ${i === slide.seg ? "w-6 bg-[var(--accent-ink)]" : i < slide.seg ? "w-2 bg-paper/70" : "w-2 bg-paper/20"}`}
-                      animate={i === slide.seg && active ? { opacity: [0.6, 1, 0.6] } : { opacity: 1 }}
-                      transition={{ duration: 1.6, repeat: i === slide.seg && active ? Infinity : 0 }}
-                    />
-                  ))}
-                </span>
-                <span className="kicker text-[var(--accent-ink)]">
-                  Capítulo {slide.number} de {data.chapters.length}
-                </span>
-              </m.div>
+    <Stage active={active}>
+      {/* uma linha só: em que capítulo estamos + atalhos discretos (o progresso geral já está no topo) */}
+      <m.div variants={rise} className="flex items-center justify-between gap-3">
+        <p className="kicker min-w-0 truncate text-[var(--accent-ink)]">
+          {slide.number}/{data.chapters.length} · {slide.kicker}
+          {skipping && (
+            <span className="ml-2 text-ash" title={`Pulamos o que é igual ao que você já viu na ${data.other.name.toLowerCase()}`}>
+              <CopyCheck aria-hidden className="mb-0.5 mr-1 inline h-3.5 w-3.5" />
+              sem repetir
+            </span>
+          )}
+        </p>
+        <span className="flex shrink-0 items-center">
+          <TLink
+            href={slide.fullHref}
+            scene={{ label: slide.title, sub: `Leitura completa · Capítulo ${slide.number}`, tone: data.side, number: String(slide.number) }}
+            className="grid h-11 w-11 place-items-center rounded-full text-ash hover:text-paper"
+            aria-label="Ler o capítulo completo"
+          >
+            <BookOpen aria-hidden className="h-4 w-4" />
+          </TLink>
+          <ShareChip
+            path={`/explorar/${data.side}?cap=${chapterSlug}`}
+            title={`${slide.title} · DOIS LADOS`}
+            text={`“${slide.title}”: o que a ${data.sideName.toLowerCase()} pensa — e o que a ${data.other.name.toLowerCase()} responde. Veja os dois lados:`}
+            className="h-11 w-11 justify-center text-ash"
+            iconOnly
+          />
+        </span>
+      </m.div>
 
-              <div className="mt-5 grid items-end gap-4 md:grid-cols-[1fr_auto]">
-                <div>
-                  <m.p variants={rise} className="font-display text-xl text-paper/80 md:text-2xl">
-                    {slide.kicker}
-                  </m.p>
-                  <h2 className="display mt-2 text-[clamp(2.3rem,8.5vw,4.8rem)]">
-                    <Kinetic text={slide.title} active={active} step={0.07} delay={0.1} />
-                  </h2>
-                </div>
-                <div className="order-first text-[var(--accent-ink)] md:order-none">
-                  {active && <ChapterArt key={slide.key} chapter={data.chapters[slide.seg]?.slug ?? ""} className="h-20 w-40 md:h-32 md:w-64" />}
-                </div>
-              </div>
+      <div className="mt-4 grid items-end gap-3 md:grid-cols-[1fr_auto] md:gap-4">
+        <h2 className="display text-[clamp(2.3rem,8.5vw,4.8rem)]">
+          <Kinetic text={slide.title} active={active} step={0.07} delay={0.1} />
+        </h2>
+        <div className="order-first text-[var(--accent-ink)] md:order-none">
+          {active && <ChapterArt key={slide.key} chapter={chapterSlug} className="h-20 w-40 md:h-32 md:w-64" />}
+        </div>
+      </div>
 
-              {/* 3 ideias-chave, uma de cada vez (como um story) */}
-              {points.length > 0 && <KeyPointsStory points={points} active={active} />}
-              {skipping && (
-                <m.p variants={rise} className="mt-4 flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.08em] text-ash">
-                  <CopyCheck aria-hidden className="h-4 w-4 shrink-0 text-[var(--accent-ink)]" />
-                  Pulamos o que é igual ao que você já viu na {data.other.name.toLowerCase()}
-                </m.p>
-              )}
-
-              {/* atalhos discretos — seguir é só deslizar */}
-              <m.div variants={rise} className="mt-4 flex items-center justify-end gap-3">
-                <span className="flex items-center gap-1 md:gap-x-4">
-                  {cp && (
-                    <button type="button" onClick={() => setFlip(true)} className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ash hover:text-paper" data-side={cp.sideSlug} aria-label={`E a ${cp.sideName.toLowerCase()}?`}>
-                      <ArrowLeftRight aria-hidden className="h-4 w-4" /> <span className="hidden md:inline">E a {cp.sideName.toLowerCase()}?</span>
-                    </button>
-                  )}
-                  <TLink
-                    href={slide.fullHref}
-                    scene={{ label: slide.title, sub: `Leitura completa · Capítulo ${slide.number}`, tone: data.side, number: String(slide.number) }}
-                    className="inline-flex min-h-10 min-w-10 items-center justify-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ash hover:text-paper"
-                    aria-label="Ler o capítulo completo"
-                  >
-                    <BookOpen aria-hidden className="h-4 w-4" /> <span className="hidden md:inline">Completo</span>
-                  </TLink>
-                  <ShareChip
-                    path={`/explorar/${data.side}?cap=${data.chapters[slide.seg]?.slug ?? ""}`}
-                    title={`${slide.title} · DOIS LADOS`}
-                    text={`“${slide.title}”: o que a ${data.sideName.toLowerCase()} pensa — e o que a ${data.other.name.toLowerCase()} responde. Veja os dois lados:`}
-                    className="min-h-10 min-w-10 justify-center text-[0.7rem] text-ash"
-                    iconOnlyOnMobile
-                  />
-                </span>
-              </m.div>
-            </Stage>
-          </m.div>
-        ) : (
-          cp && (
-            <m.div key="back" data-side={cp.sideSlug} initial={{ rotateY: -90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }} exit={{ rotateY: 90, opacity: 0 }} transition={{ duration: 0.4 }}>
-              <div className="border border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent-deep)_75%,var(--color-graphite))] p-6 md:p-10">
-                <p className="kicker text-[var(--accent-ink)]">Mesmo capítulo, pelo outro lado · {cp.sideName}</p>
-                <h3 className="display mt-3 text-[clamp(2rem,6vw,4rem)]">{cp.title}</h3>
-                <ul className="mt-6 space-y-3">
-                  {cp.keyPoints.map((k, i) => (
-                    <m.li key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.15 }} className="flex gap-3 text-lg leading-snug">
-                      <span aria-hidden className="mt-2 h-2 w-2 shrink-0 rounded-full bg-[var(--accent-ink)]" />
-                      {k}
-                    </m.li>
-                  ))}
-                </ul>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <button type="button" onClick={() => setFlip(false)} className="btn btn-solid">
-                    ← Voltar para a {data.sideName.toLowerCase()}
-                  </button>
-                  <TLink
-                    href={`/explorar/${cp.sideSlug}#${slide.key}`}
-                    scene={{ label: cp.sideName, sub: `Capítulo ${slide.number} · ${slide.kicker}`, tone: cp.sideSlug as "esquerda" | "direita", number: String(slide.number), from: cp.sideSlug === "direita" ? "right" : "left" }}
-                    className="btn"
-                  >
-                    Seguir pela {cp.sideName.toLowerCase()} →
-                  </TLink>
-                </div>
-              </div>
-            </m.div>
-          )
-        )}
-      </AnimatePresence>
-    </div>
+      {/* as ideias-chave, uma de cada vez (como um story) */}
+      {points.length > 0 && <KeyPointsStory points={points} active={active} />}
+    </Stage>
   );
 }
 
+
 /**
- * Os pontos do capítulo, um por vez (como um story): 12 s cada, setas para
- * voltar/adiantar, toque nas laterais do texto também navega, e segurar o
- * texto (ou o botão de pausa) congela a leitura.
+ * Os pontos do capítulo, um por vez (como um story): 12 s cada.
+ * Tudo numa linha só acima do texto — ‹ barras › e pausa —, e o próprio texto
+ * responde ao toque: lateral esquerda volta, o resto adianta, segurar pausa.
+ * A dica de uso aparece só na primeira vez (fica salva neste navegador).
  */
 const POINT_MS = 12_000;
 const TICK_MS = 100;
+const HINT_KEY = "doislados:dica-story";
 
 function KeyPointsStory({ points, active }: { points: string[]; active: boolean }) {
   const [i, setI] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [held, setHeld] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [hint, setHint] = useState(false);
   const press = useRef<{ timer: number | null; hold: boolean } | null>(null);
   const last = points.length - 1;
   const stopped = !active || held || paused;
@@ -491,6 +428,24 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
     setElapsed(0);
     setPaused(false);
     setHeld(false);
+  }, [active]);
+
+  // dica só na primeira capa vista
+  useEffect(() => {
+    if (!active) return;
+    let seen = false;
+    try {
+      seen = localStorage.getItem(HINT_KEY) === "1";
+    } catch {}
+    if (seen) return;
+    setHint(true);
+    const t = window.setTimeout(() => {
+      setHint(false);
+      try {
+        localStorage.setItem(HINT_KEY, "1");
+      } catch {}
+    }, 7000);
+    return () => window.clearTimeout(t);
   }, [active]);
 
   useEffect(() => {
@@ -521,18 +476,31 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
   }
 
   const frozen = held || paused;
+  const edge = "grid h-8 w-8 shrink-0 place-items-center rounded-full text-paper/60 transition-colors hover:text-paper disabled:opacity-20";
 
   return (
     <m.div initial={{ opacity: 0, y: 14 }} animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }} transition={{ delay: active ? 0.6 : 0 }} className="mt-6 max-w-2xl">
-      <div className="flex gap-1.5" aria-hidden>
-        {points.map((_, k) => (
-          <span key={k} className="h-[3px] flex-1 overflow-hidden rounded-full bg-paper/15">
-            <span
-              className="block h-full bg-[var(--accent-ink)] transition-[width] duration-100 ease-linear"
-              style={{ width: `${k < i ? 100 : k === i ? (elapsed / POINT_MS) * 100 : 0}%` }}
-            />
-          </span>
-        ))}
+      {/* ‹ barras › ⏸ */}
+      <div className="-mx-2 flex items-center gap-1">
+        <button type="button" onClick={() => go(i - 1)} disabled={i === 0} aria-label="Ponto anterior" className={edge}>
+          <ChevronLeft aria-hidden className="h-4 w-4" />
+        </button>
+        <div className="flex flex-1 gap-1.5" aria-hidden>
+          {points.map((_, k) => (
+            <span key={k} className="h-[3px] flex-1 overflow-hidden rounded-full bg-paper/15">
+              <span
+                className="block h-full bg-[var(--accent-ink)] transition-[width] duration-100 ease-linear"
+                style={{ width: `${k < i ? 100 : k === i ? (elapsed / POINT_MS) * 100 : 0}%` }}
+              />
+            </span>
+          ))}
+        </div>
+        <button type="button" onClick={() => go(i + 1)} disabled={i === last} aria-label="Próximo ponto" className={edge}>
+          <ChevronRight aria-hidden className="h-4 w-4" />
+        </button>
+        <button type="button" onClick={() => setPaused((v) => !v)} aria-label={paused ? "Continuar" : "Pausar"} aria-pressed={paused} className={edge}>
+          {paused ? <Play aria-hidden className="h-3.5 w-3.5" /> : <Pause aria-hidden className="h-3.5 w-3.5" />}
+        </button>
       </div>
 
       <div
@@ -566,7 +534,7 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -24 }}
             transition={{ duration: 0.3 }}
-            className={`flex min-h-[4.5rem] gap-3 font-display text-[1.15rem] leading-snug md:text-[1.35rem]`}
+            className="flex min-h-[4.5rem] gap-3 font-display text-[1.15rem] leading-snug md:text-[1.35rem]"
           >
             <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--accent)] font-mono text-xs font-bold text-paper">{i + 1}</span>
             <span>
@@ -576,35 +544,45 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
         </AnimatePresence>
       </div>
 
-      {/* controles: voltar · pausar · adiantar — e a dica de segurar */}
-      <div className="mt-2 flex items-center gap-1">
-        <button type="button" onClick={() => go(i - 1)} disabled={i === 0} aria-label="Ponto anterior" className="grid h-9 w-9 place-items-center rounded-full border border-paper/20 text-paper/80 transition-colors hover:border-paper hover:text-paper disabled:opacity-30">
-          <ChevronLeft aria-hidden className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => setPaused((v) => !v)}
-          aria-label={paused ? "Continuar" : "Pausar"}
-          aria-pressed={paused}
-          className="grid h-9 w-9 place-items-center rounded-full border border-paper/20 text-paper/80 transition-colors hover:border-paper hover:text-paper"
-        >
-          {paused ? <Play aria-hidden className="h-3.5 w-3.5" /> : <Pause aria-hidden className="h-3.5 w-3.5" />}
-        </button>
-        <button type="button" onClick={() => go(i + 1)} disabled={i === last} aria-label="Próximo ponto" className="grid h-9 w-9 place-items-center rounded-full border border-paper/20 text-paper/80 transition-colors hover:border-paper hover:text-paper disabled:opacity-30">
-          <ChevronRight aria-hidden className="h-4 w-4" />
-        </button>
-        <span className="ml-2 font-mono text-[0.66rem] uppercase tracking-[0.08em] text-ash" aria-live="polite">
-          {frozen ? (
-            <span className="text-paper">Pausado{held ? " · solte para seguir" : ""}</span>
-          ) : (
-            <>
-              <span className="md:hidden">Segure o texto para ler com calma</span>
-              <span className="hidden md:inline">Clique e segure o texto para pausar</span>
-            </>
-          )}
-        </span>
-      </div>
+      {/* só aparece quando ajuda: na primeira vez, ou enquanto está pausado */}
+      <AnimatePresence initial={false}>
+        {(hint || frozen) && (
+          <m.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-1 font-mono text-[0.66rem] uppercase tracking-[0.08em] text-ash"
+            aria-live="polite"
+          >
+            {frozen ? <span className="text-paper">Pausado{held ? " · solte para seguir" : ""}</span> : "Toque nos lados para trocar · segure para ler"}
+          </m.p>
+        )}
+      </AnimatePresence>
     </m.div>
+  );
+}
+
+
+/**
+ * Texto longo sem cara de bloco: cada parágrafo entra sozinho, um depois do
+ * outro, quando a tela fica ativa (sem botão, sem toque). O espaço já fica
+ * reservado, então nada "pula" enquanto entram.
+ */
+function StepText({ body, active }: { body: string; active: boolean }) {
+  const parts = useMemo(() => body.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean), [body]);
+  return (
+    <div className="space-y-4">
+      {parts.map((t, i) => (
+        <m.div
+          key={i}
+          initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
+          animate={active ? { opacity: 1, y: 0, filter: "blur(0px)" } : { opacity: 0, y: 16, filter: "blur(4px)" }}
+          transition={active ? { duration: 0.55, delay: 0.25 + i * 0.45, ease: [0.22, 1, 0.36, 1] } : { duration: 0 }}
+        >
+          <RichText text={t} gloss className="rt reel-rt text-[1.12rem] md:text-[1.2rem]" />
+        </m.div>
+      ))}
+    </div>
   );
 }
 
@@ -686,7 +664,10 @@ function ArgumentSlide({ slide, active }: { slide: Extract<SideSlide, { kind: "a
     <Stage active={active}>
       <DeepTag layer={slide.layer} />
       <m.div variants={rise} className="mb-5 flex items-center justify-between gap-3">
-        <span className={`kicker ${pro ? "text-ev-pro" : "text-ev-critique"}`}>{pro ? "Argumento a favor" : "Crítica"}</span>
+        <span className={`flex items-center gap-2 ${pro ? "text-ev-pro" : "text-ev-critique"}`}>
+          <span className="h-9 w-[3.4rem] shrink-0">{active && <Vignette key={slide.key} name={pro ? "lampada" : "lupa"} className="h-9 w-[3.4rem]" />}</span>
+          <span className="kicker">{pro ? "Argumento a favor" : "Crítica"}</span>
+        </span>
         <span className="flex gap-1.5" aria-label={`${slide.n} de ${slide.total}`}>
           {Array.from({ length: slide.total }).map((_, i) => (
             <span key={i} className={`h-1.5 w-5 rounded-full ${i < slide.n ? (pro ? "bg-ev-pro" : "bg-ev-critique") : "bg-paper/20"}`} />

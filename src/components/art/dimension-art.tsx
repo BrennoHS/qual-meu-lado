@@ -147,6 +147,23 @@ const ART: Record<string, React.ReactNode> = {
       </m.text>
     </>
   ),
+  // Argumento a favor: lâmpada que acende
+  lampada: (
+    <>
+      <m.path d="M60 14 a18 18 0 0 1 11 32 c-3 3 -4 6 -4 10 H53 c0 -4 -1 -7 -4 -10 a18 18 0 0 1 11 -32 Z" {...S} {...D(0)} />
+      <m.path d="M53 62 H67 M55 68 H65" {...S} {...D(0.4)} />
+      <m.path d="M60 2 V7 M34 12 l4 4 M86 12 l-4 4 M26 32 H32 M88 32 H94" {...S} initial={{ opacity: 0 }} animate={{ opacity: [0, 1, 0.5, 1] }} transition={{ delay: 0.8, duration: 1.2 }} />
+    </>
+  ),
+  // Crítica: lupa examinando, com um ponto de interrogação
+  lupa: (
+    <>
+      <m.circle cx={52} cy={34} r={22} {...S} {...P(0)} />
+      <m.path d="M68 50 L92 72" {...S} strokeWidth={3} {...D(0.35)} />
+      <m.path d="M45 28 a7 7 0 1 1 9 7 c-2 1 -2 3 -2 5" {...S} {...D(0.6)} />
+      <m.circle cx={52} cy={46} r={1.6} fill="currentColor" {...P(0.9)} />
+    </>
+  ),
   // Balança: pende para um lado e para o outro, sem parar em nenhum
   balanca: (
     <>

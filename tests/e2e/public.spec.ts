@@ -98,6 +98,39 @@ test.describe("experiência pública", () => {
     await expect(page.getByText(/o que diz o plano registrado no tse/i).first()).toBeVisible();
   });
 
+  test("o reel acompanha a rolagem mesmo se o IntersectionObserver falhar (iPhone/Safari)", async ({ page }) => {
+    // simula o Safari com inércia: o observador nunca avisa nada
+    await page.addInitScript(() => {
+      class Mute {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+        takeRecords() {
+          return [];
+        }
+      }
+      (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = Mute;
+    });
+    await page.goto("/explorar/esquerda", { waitUntil: "networkidle" });
+    const active = page.locator("section[data-active=true]");
+    await expect(active).toHaveAttribute("id", "origens-cover");
+    const scroller = page.locator(".reel-scroller");
+    // repete até o reel estar montado (antes disso ele mesmo se posiciona no início)
+    await expect(async () => {
+      await scroller.evaluate((el) => el.scrollTo(0, el.clientHeight));
+      await expect(active).not.toHaveAttribute("id", "origens-cover", { timeout: 1000 });
+    }).toPass({ timeout: 20_000 });
+    await scroller.evaluate((el) => el.scrollTo(0, 0));
+    await expect(active).toHaveAttribute("id", "origens-cover"); // voltou: a capa ativa de novo (e reanima)
+  });
+
+  test("o reel não desliza para os lados no celular", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "só no celular");
+    await page.goto("/explorar/esquerda");
+    const extra = await page.locator(".reel-scroller").evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(extra).toBe(0);
+  });
+
   test("quem já viu um lado não revê, no outro, as telas iguais (ex.: as cadeiras de 1789)", async ({ page }) => {
     await page.goto("/explorar/direita");
     await expect(page.locator("#origens-0-lead")).toHaveCount(1);
@@ -109,7 +142,7 @@ test.describe("experiência pública", () => {
     await expect(page.locator("#origens-0-lead")).toHaveCount(0);
     await expect(page.locator("#origens-1-ill")).toHaveCount(0);
     await expect(page.locator("#origens-3-text")).toHaveCount(1); // o que é próprio da direita continua
-    await expect(page.getByText(/pulamos o que é igual/i).first()).toBeVisible();
+    await expect(page.locator("#origens-cover").getByText(/sem repetir/i)).toBeVisible();
   });
 
   test("no reel, cada tema responde ao toque e mostra o outro lado", async ({ page }) => {

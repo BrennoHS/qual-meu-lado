@@ -10,7 +10,7 @@ import { haptic } from "@/lib/haptics";
  * no computador mostra WhatsApp e "copiar link". O link leva a uma imagem de
  * prévia com OS DOIS LADOS juntos — nunca respostas ou escolhas pessoais.
  */
-export function ShareChip({ path, title, text, label = "Compartilhar", className = "", iconOnlyOnMobile = false }: { path: string; title: string; text: string; label?: string; className?: string; iconOnlyOnMobile?: boolean }) {
+export function ShareChip({ path, title, text, label = "Compartilhar", className = "", iconOnlyOnMobile = false, iconOnly = false }: { path: string; title: string; text: string; label?: string; className?: string; iconOnlyOnMobile?: boolean; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const url = () => new URL(path, window.location.origin).toString();
@@ -42,11 +42,11 @@ export function ShareChip({ path, title, text, label = "Compartilhar", className
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button type="button" onClick={onClick} aria-label={iconOnlyOnMobile ? label : undefined} className={`inline-flex min-h-11 items-center gap-2 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-paper/85 hover:text-paper ${className}`}>
+        <button type="button" onClick={onClick} aria-label={iconOnlyOnMobile || iconOnly ? label : undefined} className={`inline-flex min-h-11 items-center gap-2 font-mono text-[0.75rem] uppercase tracking-[0.08em] text-paper/85 hover:text-paper ${className}`}>
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
             <path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {iconOnlyOnMobile ? <span className="hidden md:inline">{label}</span> : label}
+          {iconOnly ? null : iconOnlyOnMobile ? <span className="hidden md:inline">{label}</span> : label}
         </button>
       </Popover.Trigger>
       <Popover.Portal>

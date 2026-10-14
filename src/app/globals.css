@@ -230,7 +230,12 @@ body {
 
 /* ── Reel ────────────────────────────────────────────────────────
    Barra de rolagem escondida (a navegação é o deslize/os botões). */
-.reel-scroller { scrollbar-width: none; }
+.reel-scroller {
+  scrollbar-width: none;
+  /* o reel só anda na vertical: arrastar de lado não move a tela (iPhone) */
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
 .reel-scroller::-webkit-scrollbar { display: none; }
 
 /* Parágrafos entram em sequência quando a tela fica ativa. */

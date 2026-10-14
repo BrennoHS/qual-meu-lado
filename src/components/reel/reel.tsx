@@ -63,7 +63,12 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
     if (i >= 0) scrollToIndex(i);
   }, [keys, scrollToIndex]);
 
-  // Tela ativa = a que cruza a linha do meio da tela.
+  // Tela ativa = a que cobre a linha do meio da tela. Duas fontes, para não
+  // falhar no iPhone (no Safari, a rolagem com inércia atrasa ou pula avisos do
+  // IntersectionObserver, e a tela não "ativava" de novo — sem animação):
+  //  1) o IntersectionObserver, rápido onde funciona bem;
+  //  2) a própria rolagem: a cada quadro em que rola (e quando para), mede
+  //     qual tela está no meio.
   useEffect(() => {
     const root = scroller.current;
     if (!root) return;
@@ -78,7 +83,35 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
       { root, rootMargin: "-49% 0px -49% 0px", threshold: 0 },
     );
     slideEls.current.forEach((el) => el && io.observe(el));
-    return () => io.disconnect();
+
+    let frame = 0;
+    let settle = 0;
+    const measure = () => {
+      frame = 0;
+      const box = root.getBoundingClientRect();
+      const mid = box.top + box.height / 2;
+      const els = slideEls.current;
+      for (let i = 0; i < els.length; i++) {
+        const r = els[i]?.getBoundingClientRect();
+        if (r && r.top <= mid && r.bottom > mid) {
+          setActive(i);
+          return;
+        }
+      }
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(measure);
+      window.clearTimeout(settle);
+      settle = window.setTimeout(measure, 140); // quando a inércia termina
+    };
+    root.addEventListener("scroll", onScroll, { passive: true });
+    measure();
+    return () => {
+      io.disconnect();
+      root.removeEventListener("scroll", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+      window.clearTimeout(settle);
+    };
   }, [keys]);
 
   useEffect(() => {
@@ -199,7 +232,7 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
 
         <div
           ref={scroller}
-          className="reel-scroller relative z-10 h-full snap-y snap-mandatory overflow-y-auto overscroll-contain"
+          className="reel-scroller relative z-10 h-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden overscroll-contain"
           role="region"
           aria-roledescription="sequência de telas"
           aria-label={label}
@@ -213,7 +246,7 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
               data-active={i === active}
               aria-roledescription="tela"
               aria-label={`${i + 1} de ${keys.length}`}
-              className="relative flex min-h-svh snap-start snap-always items-center"
+              className="relative flex min-h-svh snap-start snap-always items-center overflow-x-clip"
             >
               <div className="mx-auto w-full max-w-4xl px-[var(--gutter)] pb-24 pt-[4.75rem] md:pb-24 md:pt-24">{render(i, Math.abs(i - active) <= 0)}</div>
             </section>
