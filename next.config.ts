@@ -40,6 +40,10 @@ const nextConfig: NextConfig = {
   // As imagens de prévia (/og/*) leem a fonte e os retratos do disco em tempo de
   // execução (src/lib/og.ts). Na Vercel, só vai para a função o que for declarado aqui.
   outputFileTracingIncludes: {
+    "/opengraph-image": [
+      "./node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-400-normal.woff",
+      "./node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff",
+    ],
     "/og/**/*": [
       "./node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-400-normal.woff",
       "./node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff",
