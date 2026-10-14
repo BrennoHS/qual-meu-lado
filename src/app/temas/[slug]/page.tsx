@@ -23,7 +23,7 @@ const themeToDimension: Record<string, string> = {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const t = (await getThemes()).find((x) => x.slug === slug);
-  return t ? { title: `${t.name}: os dois lados`, description: t.description, alternates: { canonical: `/temas/${slug}` } } : {};
+  return t ? { title: `${t.name}: o que a esquerda e a direita defendem`, description: `${t.description} Os dois lados, com o mesmo peso, ressalvas e fontes.`, alternates: { canonical: `/temas/${slug}` } } : {};
 }
 
 export default async function ThemePage({ params }: { params: Promise<{ slug: string }> }) {

@@ -37,7 +37,8 @@ export async function SiteFooter({ sponsor = true }: { sponsor?: boolean } = {})
             <li><Link className="link-u" href="/explorar/esquerda">Esquerda</Link></li>
             <li><Link className="link-u" href="/explorar/direita">Direita</Link></li>
             <li><Link className="link-u" href="/afinidades">Teste de afinidade</Link></li>
-            <li><Link className="link-u" href="/temas">Temas</Link></li>
+            <li><Link className="link-u" href="/temas">Tema por tema</Link></li>
+            <li><Link className="link-u" href="/glossario">Glossário</Link></li>
             <li><Link className="link-u" href="/linha-do-tempo">Linha do tempo</Link></li>
             <li><Link className="link-u" href="/mitos">Mitos e realidades</Link></li>
             <li><Link className="link-u" href="/segundo-turno">Propostas do 2º turno</Link></li>

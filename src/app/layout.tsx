@@ -5,6 +5,7 @@ import { TransitionProvider } from "@/components/transition/transition-provider"
 import { MetricsConfig } from "@/components/metrics-config";
 import { isMetricsEnabled } from "@/lib/metrics/server";
 import { JsonLd, SITE_URL } from "@/components/seo/json-ld";
+import { VercelInsights } from "@/components/site/vercel-insights";
 import "./globals.css";
 
 const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", weight: ["400", "500", "600", "700"], display: "swap" });
@@ -70,6 +71,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <TransitionProvider>{children}</TransitionProvider>
           <MetricsConfig enabled={metricsOn} />
         </MotionProvider>
+        {/* estatísticas anônimas: só no site publicado (os scripts existem apenas na Vercel) */}
+        {process.env.VERCEL_ENV === "production" && <VercelInsights />}
       </body>
     </html>
   );

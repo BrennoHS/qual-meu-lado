@@ -7,8 +7,8 @@ import { Reveal } from "@/components/ui/reveal";
 
 export const revalidate = 300;
 export const metadata: Metadata = {
-  title: "Temas e conflitos de valores",
-  description: "Onze temas da política brasileira, com o que cada campo costuma defender, ressalvas e os valores que entram em conflito.",
+  title: "Diferença entre esquerda e direita, tema por tema",
+  description: "Economia, Estado, segurança, educação, saúde, costumes e mais: o que a esquerda e a direita costumam defender em 11 temas, lado a lado, com ressalvas e fontes.",
   alternates: { canonical: "/temas" },
 };
 

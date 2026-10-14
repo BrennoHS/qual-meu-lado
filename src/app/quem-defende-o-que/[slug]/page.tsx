@@ -15,7 +15,7 @@ export const revalidate = 300;
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const c = await getCandidate(slug);
-  return c ? { title: `${c.ballotName} (${c.partyAcronym}) — propostas`, description: c.summary, alternates: { canonical: `/quem-defende-o-que/${slug}` } } : {};
+  return c ? { title: `${c.ballotName} (${c.partyAcronym}) — propostas`, description: c.summary, alternates: { canonical: `/segundo-turno/${slug}` } } : {};
 }
 
 export default async function CandidatePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ todas?: string }> }) {

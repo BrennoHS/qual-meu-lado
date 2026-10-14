@@ -11,7 +11,8 @@ import { ArrowRight } from "lucide-react";
 
 /** "Para ir além": tudo que não é um dos 4 passos do caminho (esses ficam em JourneySteps). */
 export const NAV = [
-  { href: "/temas", label: "Temas e conflitos de valores" },
+  { href: "/temas", label: "Esquerda e direita, tema por tema" },
+  { href: "/glossario", label: "Glossário" },
   { href: "/linha-do-tempo", label: "Linha do tempo" },
   { href: "/mitos", label: "Mitos e realidades" },
   { href: "/fontes", label: "Biblioteca de fontes" },

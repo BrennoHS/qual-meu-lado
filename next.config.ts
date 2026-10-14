@@ -55,6 +55,9 @@ const nextConfig: NextConfig = {
     return [
       { source: "/quem-defende-o-que", destination: "/segundo-turno", permanent: false },
       { source: "/quem-defende-o-que/comparar", destination: "/segundo-turno", permanent: false },
+      // O endereço técnico da Vercel serve o mesmo site: manda tudo para o domínio
+      // oficial, para o Google não ver duas cópias (as prévias de deploy não são afetadas).
+      { source: "/:path*", has: [{ type: "host", value: "qual-meu-lado.vercel.app" }], destination: "https://qualmeulado.com.br/:path*", permanent: true },
     ];
   },
   async headers() {

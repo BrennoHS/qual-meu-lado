@@ -109,9 +109,15 @@ A Lei Geral de Proteção de Dados (Lei nº 13.709/2018) classifica opinião pol
 
 Você pode apagar suas respostas locais a qualquer momento em [Seu percurso](/meu-percurso). Para relatos enviados, solicite exclusão pelo [Contato](/contato). Dúvidas sobre proteção de dados podem ser dirigidas também à ANPD.
 
-## Medição de uso (hoje: desligada)
+## Estatísticas de visitas (ligadas desde 14/10/2026)
 
-O site tem uma medição **agregada e anônima**, desligada por padrão. Se for ativada — só depois de parecer jurídico —, ela contará apenas até qual tela os reels são vistos, por dia: sem cookies, sem IP, sem identificador e sem ligação com respostas. Nas propostas do 2º turno, conta só o tema, nunca a candidatura. Navegadores com "Global Privacy Control" ou "Do Not Track" ligados ficam fora. Os números servem apenas para melhorar o conteúdo e não são divulgados. Se ela for ativada, esta seção será atualizada com a data.
+Contamos visitas de forma **agregada e anônima** com o Web Analytics e o Speed Insights da Vercel, a empresa que hospeda o site: quantas pessoas abriram cada página, de onde vieram (por exemplo, um link no WhatsApp), país, tipo de aparelho e a velocidade de carregamento. Não há cookies nem identificador que siga você de um dia para o outro: para não contar a mesma visita duas vezes, a Vercel usa um código temporário descartado a cada 24 horas.
+
+Antes de cada envio, o próprio site **corta a parte do endereço depois de "?"** (onde links compartilhados levam dados de resultado), e quem liga "Global Privacy Control" ou "Do Not Track" no navegador **não é contado**. Nada disso tem ligação com suas respostas, que nunca saem do seu navegador.
+
+## Medição própria dos reels (hoje: desligada)
+
+O site também tem uma medição própria, **agregada e anônima**, desligada por padrão. Se for ativada — só depois de parecer jurídico —, ela contará apenas até qual tela os reels são vistos, por dia: sem cookies, sem IP, sem identificador e sem ligação com respostas. Nas propostas do 2º turno, conta só o tema, nunca a candidatura. Navegadores com "Global Privacy Control" ou "Do Not Track" ligados ficam fora. Os números servem apenas para melhorar o conteúdo e não são divulgados. Se ela for ativada, esta seção será atualizada com a data.
 
 ## O que fica só no seu navegador
 
