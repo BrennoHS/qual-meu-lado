@@ -210,7 +210,7 @@ function ProposalSlide({ slide, active, data }: { slide: Extract<CandidateSlide,
         </span>
         <p className="kicker">Rodada {idx + 1} de {ROUNDS.length} · {round.label}</p>
       </m.div>
-      <h2 className="mt-3 font-display text-[clamp(1.4rem,5vw,3.2rem)] font-semibold leading-[1.08] tracking-tight">
+      <h2 className="mt-3 font-display text-[clamp(1.4rem,5vw,3.2rem)] font-semibold leading-[1.08] tracking-tight md:text-[clamp(1.4rem,min(5vw,6vh),3.2rem)]">
         <Kinetic text={round.question} active={active} step={0.04} delay={0.15} gloss />
       </h2>
 

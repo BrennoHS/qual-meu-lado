@@ -13,7 +13,9 @@ export function sideSlideSpeech(s: SideSlide, ctx: { sideName: string; otherName
     case "lead":
       return s.text;
     case "text":
-      return `${s.title ? `${s.title}. ` : ""}${plainText(s.body)}`;
+      // o título só na primeira tela de um texto dividido; nos passos, o rótulo ("Depois")
+      if (s.steps) return `${s.title ? `${s.title}. ` : ""}${s.steps.map((x) => `${x.label}. ${plainText(x.body)}`).join(" ")}`;
+      return `${s.title && !s.part?.i ? `${s.title}. ` : ""}${plainText(s.body)}`;
     case "illustration":
       return [s.title, s.caption].filter(Boolean).join(". ");
     case "glossary":

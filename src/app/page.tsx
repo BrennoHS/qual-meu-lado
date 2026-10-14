@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { getAffinityModel, getPerspectives, getSettings, interleaveStatements } from "@/lib/content/queries";
+import { getAffinityModel, getMyths, getPerspectives, getSettings, interleaveStatements } from "@/lib/content/queries";
+import { MythDeck } from "@/components/myths/myth-deck";
+import { InViewVignette } from "@/components/art/dimension-art";
+import { CountUp } from "@/components/ui/count-up";
 import { QuickQuestion } from "@/components/affinity/quick-question";
 import { ProposalThemes } from "@/components/site/proposal-themes";
 import { SplitHero } from "@/components/hero/split-hero";
@@ -20,23 +23,27 @@ export const revalidate = 300;
 
 /** "Para ir além" — o caminho principal (4 passos) fica em <JourneySteps />. */
 const PATHS = [
-  { href: "/temas", n: "01", title: "Conflitos de valores", text: "Liberdade, igualdade, segurança, responsabilidade fiscal: onde valores desejáveis entram em tensão." },
-  { href: "/linha-do-tempo", n: "02", title: "Linha do tempo viva", text: "De 1789 a hoje, no Brasil e no mundo. Cada evento com sua fonte." },
-  { href: "/mitos", n: "03", title: "Mitos e realidades", text: "Afirmações comuns sobre política. Você consegue dizer o que é fato?" },
-  { href: "/fontes", n: "04", title: "Biblioteca de fontes", text: "Toda afirmação relevante tem origem, data e contexto." },
+  { href: "/temas", n: "01", art: "balanca", title: "Tema por tema", text: "Economia, segurança, educação, costumes: o que cada lado defende em 11 temas, lado a lado." },
+  { href: "/linha-do-tempo", n: "02", art: "coroa", title: "Linha do tempo viva", text: "De 1789 a hoje, no Brasil e no mundo. Cada evento com sua fonte." },
+  { href: "/mitos", n: "03", art: "lupa", title: "Mito ou verdade?", text: "Afirmações comuns sobre política, uma por vez. Você consegue dizer o que é fato?" },
+  { href: "/fontes", n: "04", art: "fato", title: "Biblioteca de fontes", text: "Toda afirmação relevante tem origem, data e contexto." },
 ];
 
 const LABELS: EvidenceKind[] = ["fact", "pro", "critique", "interpretation", "proposal", "unconfirmed"];
 
 export default async function Home() {
-  const [{ hero }, perspectives, sourceCount, claimCount, election, affinity] = await Promise.all([
+  const [{ hero }, perspectives, sourceCount, claimCount, election, affinity, mythData] = await Promise.all([
     getSettings(),
     getPerspectives(),
     db.source.count({ where: { status: { in: PUBLIC_STATUSES }, isDemo: false } }),
     db.claim.count({ where: { status: { in: PUBLIC_STATUSES } } }),
     getCurrentElection(),
     getAffinityModel(),
+    getMyths(),
   ]);
+  // "Mito ou verdade?" do dia: só afirmações de resposta clara (confirmada ou falsa)
+  const clear = mythData.myths.filter((m) => m.verdict === "CONFIRMED" || m.verdict === "FALSE");
+  const todayMyth = clear.length ? clear[Math.floor(Date.now() / 86_400_000) % clear.length] : null;
   // as primeiras afirmações do teste, na mesma ordem dele (para a pergunta rápida)
   const quick = interleaveStatements(affinity.statements)
     .slice(0, 6)
@@ -117,6 +124,23 @@ export default async function Home() {
           </section>
         )}
 
+        {todayMyth && (
+          <section aria-labelledby="mito" className="border-b border-line">
+            <div className="wrap py-14 md:py-20">
+              <p className="kicker">Teste seu faro · uma afirmação por dia</p>
+              <h2 id="mito" className="h-section mt-3">Mito ou verdade?</h2>
+              <div className="mt-8 max-w-3xl">
+                <MythDeck
+                  mode="teaser"
+                  myths={[{ slug: todayMyth.slug, statement: todayMyth.statement, verdict: todayMyth.verdict, explanation: todayMyth.explanation, claimKeys: todayMyth.claimKeys }]}
+                  claims={Object.fromEntries(todayMyth.claimKeys.filter((k) => mythData.claims[k]).map((k) => [k, mythData.claims[k]]))}
+                  moreCount={mythData.myths.length - 1}
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
         <section aria-labelledby="proposta" className="wrap py-20 md:py-32">
           <Reveal>
             <p className="kicker">Dois lados. Milhões de perspectivas.</p>
@@ -135,7 +159,12 @@ export default async function Home() {
               <li key={p.href} className="bg-graphite">
                 <Reveal delay={i * 0.05} className="h-full">
                   <Link href={p.href} className="group flex h-full min-h-56 flex-col justify-between p-6 transition-colors hover:bg-graphite-2 md:p-8">
-                    <span className="font-mono text-sm text-ash">{p.n}</span>
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="font-mono text-sm text-ash">{p.n}</span>
+                      <span className="text-paper/60 transition-colors group-hover:text-paper">
+                        <InViewVignette name={p.art} className="h-12 w-[4.5rem]" />
+                      </span>
+                    </span>
                     <span>
                       <span className="block font-display text-2xl tracking-tight group-hover:underline md:text-3xl">{p.title}</span>
                       <span className="mt-3 block text-paper/70">{p.text}</span>
@@ -159,11 +188,11 @@ export default async function Home() {
               <dl className="mt-10 grid grid-cols-2 gap-6">
                 <div>
                   <dt className="kicker">Fontes catalogadas</dt>
-                  <dd className="mt-1 font-display text-6xl font-bold tracking-tight">{sourceCount}</dd>
+                  <dd className="mt-1 font-display text-6xl font-bold tracking-tight"><CountUp value={sourceCount} /></dd>
                 </div>
                 <div>
                   <dt className="kicker">Afirmações verificáveis</dt>
-                  <dd className="mt-1 font-display text-6xl font-bold tracking-tight">{claimCount}</dd>
+                  <dd className="mt-1 font-display text-6xl font-bold tracking-tight"><CountUp value={claimCount} /></dd>
                 </div>
               </dl>
             </Reveal>

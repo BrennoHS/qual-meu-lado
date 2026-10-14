@@ -11,12 +11,17 @@ const claimKeys = z.array(z.string().min(1)).default([]);
 
 export { critiqueCategories, argumentCategories } from "./categories";
 
+/** Nome de uma vinheta animada (src/components/art/explainers.tsx). */
+const art = z.string().min(1).max(40).regex(/^[a-z0-9-]+$/, "use apenas a-z, 0-9 e hífen");
+
 const leadBlock = z.object({ type: z.literal("lead"), text: z.string().min(1) });
 
 const textBlock = z.object({
   type: z.literal("text"),
   title: z.string().optional(),
   body: z.string().min(1),
+  /** Uma vinheta por parágrafo (textos em passos: "Primeiro…", "Depois…"). */
+  art: z.array(art).optional(),
 });
 
 const claimsBlock = z.object({
@@ -65,6 +70,8 @@ const argumentItem = z.object({
   limits: z.string().optional(),
   /** Como a evidência deve ser lida (consenso, debate, lacuna). */
   evidenceNote: z.string().optional(),
+  /** Vinheta animada do cartão. */
+  art: art.optional(),
 });
 
 const argumentsBlock = z.object({
@@ -137,6 +144,7 @@ const exampleBlock = z.object({
   type: z.literal("example"),
   title: z.string().min(1),
   body: z.string().min(1),
+  art: art.optional(),
 });
 
 /**

@@ -248,7 +248,7 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
               aria-label={`${i + 1} de ${keys.length}`}
               className="relative flex min-h-svh snap-start snap-always items-center overflow-x-clip"
             >
-              <div className="mx-auto w-full max-w-4xl px-[var(--gutter)] pb-24 pt-[4.75rem] md:pb-24 md:pt-24">{render(i, Math.abs(i - active) <= 0)}</div>
+              <FitBox className="mx-auto w-full max-w-4xl px-[var(--gutter)] pb-24 pt-[4.75rem] md:pb-24 md:pt-24">{render(i, Math.abs(i - active) <= 0)}</FitBox>
             </section>
           ))}
         </div>
@@ -330,6 +330,56 @@ export const pop: Variants = {
 };
 
 /** Texto que entra palavra por palavra (tipografia cinética). Com gloss, palavras difíceis viram "toque para entender". */
+/** Menor encolhimento aceito: abaixo disso, a tela rola (letra pequena demais não ajuda). */
+const MIN_FIT = 0.72;
+
+/**
+ * "Uma tela = uma coisa": se o conteúdo de uma tela passar da altura visível
+ * (notebook baixo, celular pequeno), encolhe tudo por igual (zoom) até caber.
+ * Mede sem o zoom a cada mudança de tamanho (fonte carregada, ressalva aberta,
+ * janela redimensionada); só grava quando o valor muda, para não entrar em laço.
+ */
+function FitBox({ className, children }: { className: string; children: React.ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const box = outer.current;
+    const el = inner.current;
+    if (!box || !el) return;
+    let frame = 0;
+    let current = "";
+    const fit = () => {
+      frame = 0;
+      const prev = el.style.zoom;
+      el.style.zoom = "";
+      const cs = getComputedStyle(box);
+      const viewport = box.closest<HTMLElement>(".reel-scroller")?.clientHeight ?? window.innerHeight;
+      const avail = viewport - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      const need = el.scrollHeight;
+      const next = need > avail + 2 ? String(Math.max(MIN_FIT, Math.floor((avail / need) * 100) / 100)) : "";
+      el.style.zoom = next === current ? prev : next;
+      current = next;
+    };
+    const schedule = () => {
+      if (!frame) frame = window.requestAnimationFrame(fit);
+    };
+    fit();
+    const ro = new ResizeObserver(schedule);
+    ro.observe(el);
+    window.addEventListener("resize", schedule);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", schedule);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+  return (
+    <div ref={outer} className={className}>
+      <div ref={inner}>{children}</div>
+    </div>
+  );
+}
+
 export function Kinetic({ text, active, className = "", delay = 0, step = 0.035, gloss = false }: { text: string; active: boolean; className?: string; delay?: number; step?: number; gloss?: boolean }) {
   const segs = gloss ? glossSegments(text, glossCtx(2)) : [{ text }];
   let wi = 0;

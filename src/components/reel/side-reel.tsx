@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowLeftRight, BookOpen, Check, ChevronDown, CopyCheck, ChevronLeft, ChevronRight, Layers, LayoutGrid, Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Check, ChevronDown, CopyCheck, ChevronLeft, ChevronRight, Layers, LayoutGrid, Pause, Play, Pointer, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { AnimatePresence } from "motion/react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, useAnimationControls } from "motion/react";
 import * as m from "motion/react-m";
 import type { SideReelData, SideSlide } from "@/lib/reel/types";
 import { RichText } from "@/lib/richtext";
@@ -210,25 +210,13 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
       return (
         <Stage active={active}>
           <DeepTag layer={slide.layer} />
-          <p className="font-display text-[clamp(1.7rem,5vw,3.4rem)] font-medium leading-[1.12] tracking-tight">
+          <p className="font-display text-[clamp(1.7rem,5vw,3.4rem)] font-medium leading-[1.12] tracking-tight md:text-[clamp(1.7rem,min(5vw,6.4vh),3.4rem)]">
             <Kinetic text={slide.text} active={active} step={0.028} gloss />
           </p>
         </Stage>
       );
     case "text":
-      return (
-        <Stage active={active} className="max-w-2xl">
-          <DeepTag layer={slide.layer} />
-          {slide.title && (
-            <m.h2 variants={rise} className="h-section mb-6">
-              {slide.title}
-            </m.h2>
-          )}
-          <m.div variants={rise}>
-            <StepText body={slide.body} active={active} />
-          </m.div>
-        </Stage>
-      );
+      return slide.steps ? <StepSlide slide={slide} active={active} /> : <TextSlide slide={slide} active={active} />;
     case "illustration":
       return (
         <Stage active={active} className="text-center">
@@ -297,7 +285,11 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
         <Stage active={active} className="max-w-3xl">
           <DeepTag layer={slide.layer} />
           <m.div variants={rise} className="flex items-center gap-3">
-            <PeopleIcon active={active} />
+            {slide.art ? (
+              <span className="h-16 w-24 shrink-0 text-[var(--accent-ink)]">{active && <Vignette key={slide.key} name={slide.art} className="h-16 w-24" />}</span>
+            ) : (
+              <PeopleIcon active={active} />
+            )}
             <p className="kicker text-[var(--accent-ink)]">{slide.title}</p>
           </m.div>
           <m.div variants={rise} className="mt-5 border-l-4 border-[var(--accent)] pl-5">
@@ -563,6 +555,173 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
 }
 
 
+type TextSlideData = Extract<SideSlide, { kind: "text" }>;
+
+/**
+ * Uma história em passos ("Primeiro…", "Depois…", "No século 20…") numa tela
+ * só: tocar avança (no último, volta ao primeiro). A linha do tempo no topo
+ * mostra onde se está; o dedinho indica o toque até a pessoa ver todos, e aí
+ * a setinha para baixo indica que dá para seguir.
+ */
+function StepSlide({ slide, active }: { slide: TextSlideData; active: boolean }) {
+  const steps = slide.steps!;
+  const n = steps.length;
+  const [i, setI] = useState(0);
+  const [seen, setSeen] = useState(1);
+  const { next } = useReel();
+  useEffect(() => {
+    if (active) return;
+    setI(0);
+    setSeen(1);
+  }, [active]);
+  const done = seen >= n;
+  const cur = steps[i];
+  const pct = (k: number) => (n > 1 ? (k / (n - 1)) * 100 : 0);
+
+  function go(k: number) {
+    haptic("tap");
+    const to = (k + n) % n;
+    setI(to);
+    setSeen((s) => Math.max(s, to + 1));
+  }
+  function onTap(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest(".gloss, a, button")) return;
+    go(i + 1);
+  }
+
+  return (
+    <Stage active={active} className="max-w-3xl">
+      {/* a tela toda responde ao toque (menos links, botões e palavras do glossário) */}
+      <div onClick={onTap} className="-m-6 cursor-pointer select-none p-6">
+        <DeepTag layer={slide.layer} />
+        {slide.title && (
+          <m.p variants={rise} className="kicker text-[var(--accent-ink)]">
+            {slide.title}
+          </m.p>
+        )}
+        {/* linha do tempo: cada passo é tocável; a linha cresce até o atual */}
+        <m.div variants={rise} className="mt-5">
+          <div className="relative grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+            <div className="absolute top-[7px] h-[2px] bg-paper/15" style={{ left: `${50 / n}%`, right: `${50 / n}%` }}>
+              <m.div className="h-full bg-[var(--accent-ink)]" animate={{ width: `${pct(i)}%` }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} />
+            </div>
+            {steps.map((st, k) => (
+              <button
+                key={st.label}
+                type="button"
+                onClick={() => go(k)}
+                aria-label={`Passo ${k + 1}: ${st.label}`}
+                aria-current={k === i ? "step" : undefined}
+                className="relative flex flex-col items-center gap-2 text-center"
+              >
+                <span className={`relative grid h-4 w-4 place-items-center rounded-full border-2 transition-colors ${k <= i ? "border-[var(--accent-ink)] bg-[var(--accent-ink)]" : "border-paper/30 bg-graphite"}`}>
+                  {k === i && active && (
+                    <m.span className="absolute inset-0 rounded-full border-2 border-[var(--accent-ink)]" animate={{ scale: [1, 2.2], opacity: [0.8, 0] }} transition={{ duration: 1.4, repeat: Infinity, delay: 0.6 }} />
+                  )}
+                </span>
+                <span className={`font-mono text-[0.62rem] uppercase leading-tight tracking-[0.08em] md:text-[0.7rem] ${k === i ? "text-paper" : "text-ash"}`}>{st.label}</span>
+              </button>
+            ))}
+          </div>
+        </m.div>
+
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={i}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-8 grid items-center gap-4 md:mt-10 md:grid-cols-[auto_1fr] md:gap-8"
+            aria-live="polite"
+          >
+            {cur.art && <div className="h-16 w-24 text-[var(--accent-ink)] md:h-24 md:w-36">{active && <Vignette name={cur.art} className="h-16 w-24 md:h-24 md:w-36" />}</div>}
+            <div>
+              <h2 className="display text-[clamp(2.1rem,6vw,3.6rem)]">
+                <Kinetic text={cur.label} active={active} step={0.06} delay={0.1} />
+              </h2>
+              <div className="mt-3">
+                <RichText text={cur.body} gloss className="rt reel-rt text-[1.15rem] md:text-[1.3rem]" />
+              </div>
+            </div>
+          </m.div>
+        </AnimatePresence>
+
+      {/* indicador: toque para avançar até ver todos; depois, siga para baixo */}
+      <div className="mt-8 flex min-h-12 items-center">
+        <AnimatePresence mode="wait" initial={false}>
+          {!done ? (
+            <m.button
+              key="tap"
+              type="button"
+              onClick={() => go(i + 1)}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="inline-flex items-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.08em] text-paper/80"
+            >
+              <span className="relative grid h-10 w-10 place-items-center">
+                <m.span className="absolute inset-0 rounded-full border border-paper/50" animate={{ scale: [0.6, 1.3], opacity: [0.8, 0] }} transition={{ duration: 1.3, repeat: Infinity, delay: 0.3 }} />
+                <m.span animate={{ y: [0, 3, 0], scale: [1, 0.9, 1] }} transition={{ duration: 1.3, repeat: Infinity }}>
+                  <Pointer aria-hidden className="h-5 w-5" />
+                </m.span>
+              </span>
+              Toque para avançar · {i + 1}/{n}
+            </m.button>
+          ) : (
+            <m.button
+              key="down"
+              type="button"
+              onClick={() => next()}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="inline-flex items-center gap-3 font-mono text-[0.7rem] uppercase tracking-[0.08em] text-paper/80"
+            >
+              <m.span className="grid h-10 w-10 place-items-center rounded-full border border-paper/40" animate={{ y: [0, 5, 0] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                <ChevronDown aria-hidden className="h-5 w-5" />
+              </m.span>
+              Pronto · role para continuar
+            </m.button>
+          )}
+        </AnimatePresence>
+      </div>
+      </div>
+    </Stage>
+  );
+}
+
+/** Texto comum (ou uma parte de um texto longo, com o indicador de partes). */
+function TextSlide({ slide, active }: { slide: TextSlideData; active: boolean }) {
+  const cont = !!slide.part && slide.part.i > 0;
+  return (
+    <Stage active={active} className="max-w-2xl">
+      <DeepTag layer={slide.layer} />
+      {slide.title &&
+        (cont ? (
+          <m.p variants={rise} className="kicker mb-5 text-[var(--accent-ink)]">
+            {slide.title} · continua
+          </m.p>
+        ) : (
+          <m.h2 variants={rise} className="h-section mb-6">
+            {slide.title}
+          </m.h2>
+        ))}
+      {slide.art && <div className="mb-4 h-14 w-[5.25rem] text-[var(--accent-ink)]">{active && <Vignette key={slide.key} name={slide.art} className="h-14 w-[5.25rem]" />}</div>}
+      <m.div variants={rise}>
+        <StepText body={slide.body} active={active} />
+      </m.div>
+      {slide.part && (
+        <m.div variants={rise} className="mt-6 flex items-center gap-1.5" aria-label={`Parte ${slide.part.i + 1} de ${slide.part.n}`}>
+          {Array.from({ length: slide.part.n }).map((_, k) => (
+            <span key={k} className={`h-1.5 rounded-full transition-all ${k === slide.part!.i ? "w-6 bg-[var(--accent-ink)]" : k < slide.part!.i ? "w-1.5 bg-paper/60" : "w-1.5 bg-paper/20"}`} />
+          ))}
+        </m.div>
+      )}
+    </Stage>
+  );
+}
+
 /**
  * Texto longo sem cara de bloco: cada parágrafo entra sozinho, um depois do
  * outro, quando a tela fica ativa (sem botão, sem toque). O espaço já fica
@@ -665,7 +824,7 @@ function ArgumentSlide({ slide, active }: { slide: Extract<SideSlide, { kind: "a
       <DeepTag layer={slide.layer} />
       <m.div variants={rise} className="mb-5 flex items-center justify-between gap-3">
         <span className={`flex items-center gap-2 ${pro ? "text-ev-pro" : "text-ev-critique"}`}>
-          <span className="h-9 w-[3.4rem] shrink-0">{active && <Vignette key={slide.key} name={pro ? "lampada" : "lupa"} className="h-9 w-[3.4rem]" />}</span>
+          <span className="h-16 w-24 shrink-0">{active && <Vignette key={slide.key} name={slide.art ?? (pro ? "lampada" : "lupa")} className="h-16 w-24" />}</span>
           <span className="kicker">{pro ? "Argumento a favor" : "Crítica"}</span>
         </span>
         <span className="flex gap-1.5" aria-label={`${slide.n} de ${slide.total}`}>
@@ -757,165 +916,202 @@ function CounterpointSlide({ slide, active, data }: { slide: Extract<SideSlide, 
 }
 
 /**
- * Tema por tema, em dois passos leves: uma grade de temas ilustrados (todos à
- * vista, nada escondido) e, ao tocar, um cartão por vez — com troca de lado
- * e "próximo tema" sem voltar à grade.
+ * Tema por tema como um carrossel: um cartão por tema, deslizando para o lado
+ * (arrastar no celular; setas e ← → no computador). O próximo cartão aparece
+ * na borda, convidando a deslizar. Cada cartão: vinheta desenhada, o conflito
+ * de valores como um "cabo de guerra", a posição deste lado e, num toque, a
+ * do outro — com o mesmo peso.
  */
 function ThemesSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind: "themes" }>; active: boolean; data: SideReelData }) {
-  const [sel, setSel] = useState<number | null>(null);
-  const [other, setOther] = useState(false);
-  const [dir, setDir] = useState(1);
-  const [seen, setSeen] = useState<Set<number>>(() => new Set());
-  const [nuance, setNuance] = useState(false);
-  const pillId = useId();
   const total = slide.items.length;
+  const [index, setIndex] = useState(0);
+  const [other, setOther] = useState(false);
+  const [nuance, setNuance] = useState(false);
+  const [width, setWidth] = useState(0);
+  const frame = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const controls = useAnimationControls();
+
+  useLayoutEffect(() => {
+    const el = frame.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const cardW = width ? (width < 640 ? width * 0.86 : Math.min(width * 0.8, 720)) : 0;
+  const stepW = cardW + 12;
 
   useEffect(() => {
-    if (!active) setSel(null);
-  }, [active]);
+    if (stepW > 12) controls.start({ x: -index * stepW, transition: { type: "spring", stiffness: 260, damping: 32 } });
+  }, [index, stepW, controls]);
 
-  function open(i: number, d = 1) {
+  function go(i: number) {
+    const n = Math.max(0, Math.min(total - 1, i));
+    if (n === index) {
+      controls.start({ x: -index * stepW, transition: { type: "spring", stiffness: 260, damping: 32 } });
+      return;
+    }
     haptic("tap");
-    setDir(d);
-    setSel(i);
+    setIndex(n);
     setOther(false);
     setNuance(false);
-    setSeen((s) => new Set(s).add(i));
   }
-  const step = (d: number) => sel !== null && open((sel + d + total) % total, d);
   function onKey(e: React.KeyboardEvent) {
-    if (sel === null) return;
-    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-      e.preventDefault();
-      e.stopPropagation();
-      step(e.key === "ArrowRight" ? 1 : -1);
-    } else if (e.key === "Escape") setSel(null);
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    e.stopPropagation();
+    go(index + (e.key === "ArrowRight" ? 1 : -1));
   }
 
-  const t = sel !== null ? slide.items[sel] : null;
-  const pos = t ? (other ? t.other : t.mine) : null;
-  const sides = [
-    { key: false, slug: data.side, name: data.sideName },
-    { key: true, slug: data.other.slug, name: data.other.name },
-  ];
-
+  const arrow = "grid h-10 w-10 place-items-center rounded-full border border-paper/30 text-paper/85 transition-colors hover:border-paper disabled:opacity-25";
   return (
     <Stage active={active}>
-      <div onKeyDown={onKey}>
-        <AnimatePresence mode="wait" initial={false}>
-          {sel === null || !t ? (
-            <m.div key="grid" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }}>
-              <DeepTag layer={slide.layer} />
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                <h2 className="font-display text-[clamp(1.5rem,4vw,2.2rem)] font-semibold tracking-tight">{slide.title}</h2>
-                <p className="kicker text-ash">{seen.size > 0 ? `${seen.size} de ${total} vistos` : `${total} temas · escolha um`}</p>
-              </div>
-              <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                {slide.items.map((it, i) => (
-                  <m.li key={it.slug} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 * i }}>
-                    <m.button
-                      type="button"
-                      onClick={() => open(i)}
-                      whileTap={{ scale: 0.96 }}
-                      className="group relative flex h-full min-h-14 w-full items-center gap-2.5 border border-paper/15 bg-graphite/50 px-2.5 py-2 text-left transition-colors hover:border-[var(--accent-ink)] md:min-h-20 md:flex-col md:items-start md:gap-1 md:p-3"
-                    >
-                      <span className="shrink-0 text-[var(--accent-ink)] opacity-80 transition-opacity group-hover:opacity-100">
-                        <ThemeArt theme={it.slug} className="h-8 w-12 md:h-10 md:w-16" />
-                      </span>
-                      <span className="text-[0.82rem] leading-tight text-paper/90 md:text-sm">{it.name}</span>
-                      {seen.has(i) && (
-                        <span aria-label="visto" className="absolute right-1.5 top-1.5 text-[var(--accent-ink)]">
-                          <Check aria-hidden className="h-3.5 w-3.5" strokeWidth={2.5} />
-                        </span>
-                      )}
-                    </m.button>
-                  </m.li>
-                ))}
-              </ul>
-            </m.div>
-          ) : (
-            <m.div key="detail" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }}>
-              {/* barra: voltar à grade · posição · anterior/próximo */}
-              <div className="flex items-center justify-between gap-3">
-                <button type="button" onClick={() => setSel(null)} className="inline-flex min-h-10 items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ash hover:text-paper">
-                  <LayoutGrid aria-hidden className="h-4 w-4" /> Todos os temas
-                </button>
-                <span className="flex items-center gap-1">
-                  <button type="button" onClick={() => step(-1)} aria-label="Tema anterior" className="grid h-10 w-10 place-items-center rounded-full text-paper/80 hover:bg-paper/10 hover:text-paper">
-                    <ChevronLeft aria-hidden className="h-5 w-5" />
-                  </button>
-                  <span className="min-w-[3.2rem] text-center font-mono text-xs text-ash">
-                    {sel + 1}/{total}
-                  </span>
-                  <button type="button" onClick={() => step(1)} aria-label="Próximo tema" className="grid h-10 w-10 place-items-center rounded-full text-paper/80 hover:bg-paper/10 hover:text-paper">
-                    <ChevronRight aria-hidden className="h-5 w-5" />
-                  </button>
-                </span>
-              </div>
+      <DeepTag layer={slide.layer} />
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <m.h2 variants={rise} className="font-display text-[clamp(1.5rem,4vw,2.2rem)] font-semibold tracking-tight">
+            {slide.title}
+          </m.h2>
+          <m.p variants={rise} className="kicker mt-1 text-ash">
+            {total} temas · deslize para o lado
+          </m.p>
+        </div>
+        <span className="hidden items-center gap-2 md:flex">
+          <button type="button" onClick={() => go(index - 1)} disabled={index === 0} aria-label="Tema anterior" className={arrow}>
+            <ChevronLeft aria-hidden className="h-5 w-5" />
+          </button>
+          <button type="button" onClick={() => go(index + 1)} disabled={index === total - 1} aria-label="Próximo tema" className={arrow}>
+            <ChevronRight aria-hidden className="h-5 w-5" />
+          </button>
+        </span>
+      </div>
 
-              <AnimatePresence mode="wait" initial={false}>
-                <m.div
-                  key={t.slug}
-                  initial={{ opacity: 0, x: 40 * dir }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -40 * dir }}
-                  transition={{ duration: 0.28 }}
-                  drag="x"
-                  dragConstraints={{ left: 0, right: 0 }}
-                  dragElastic={0.25}
-                  dragDirectionLock
-                  onDragEnd={(_, info) => {
-                    if (Math.abs(info.offset.x) > 70) step(info.offset.x < 0 ? 1 : -1);
-                  }}
-                  className="touch-pan-y"
-                >
-                  <div className="mt-1 flex items-center gap-3" data-side={other ? data.other.slug : data.side}>
-                    <span className="shrink-0 text-[var(--accent-ink)]">
-                      <ThemeArt key={`${t.slug}-${other}`} theme={t.slug} className="h-12 w-[4.5rem] md:h-16 md:w-24" />
-                    </span>
-                    <h3 className="font-display text-[clamp(1.35rem,3.4vw,2rem)] font-semibold leading-tight tracking-tight">{t.name}</h3>
+      <div
+        ref={frame}
+        tabIndex={0}
+        onKeyDown={onKey}
+        role="region"
+        aria-roledescription="carrossel"
+        aria-label="Temas"
+        className="relative mt-4 overflow-hidden outline-none max-md:-mx-[var(--gutter)] max-md:px-[var(--gutter)]"
+      >
+        <m.div
+          className="flex items-start gap-3"
+          style={{ touchAction: "pan-y" }}
+          drag="x"
+          dragConstraints={{ left: -(total - 1) * stepW, right: 0 }}
+          dragElastic={0.14}
+          animate={controls}
+          onDragStart={() => (dragging.current = true)}
+          onDragEnd={(_, info) => {
+            window.setTimeout(() => (dragging.current = false), 0);
+            const far = stepW * 0.18;
+            if (info.offset.x < -far || info.velocity.x < -450) go(index + 1);
+            else if (info.offset.x > far || info.velocity.x > 450) go(index - 1);
+            else go(index);
+          }}
+        >
+          {slide.items.map((t, k) => {
+            const current = k === index;
+            const near = Math.abs(k - index) <= 1;
+            const pos = current ? (other ? t.other : t.mine) : t.mine;
+            const [va, vb] = (t.conflict ?? "").replace(/\.$/, "").split("×").map((x) => x.trim());
+            return (
+              <m.article
+                key={t.slug}
+                aria-roledescription="tema"
+                aria-label={`${k + 1} de ${total}: ${t.name}`}
+                aria-hidden={!current}
+                onClick={() => !current && !dragging.current && go(k)}
+                animate={{ opacity: current ? 1 : 0.4, scale: current ? 1 : 0.96 }}
+                transition={{ duration: 0.3 }}
+                style={{ width: cardW || "86%", flexShrink: 0 }}
+                className={`border bg-graphite-2/95 p-5 md:grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:grid-rows-[auto_auto_1fr] md:gap-x-6 md:p-6 ${current ? "border-paper/30" : "cursor-pointer border-line"}`}
+              >
+                <div className="flex items-start justify-between gap-3 md:col-start-1">
+                  <div className="min-w-0">
+                    <p className="kicker text-ash">
+                      {k + 1}/{total}
+                    </p>
+                    <h3 className="mt-1 font-display text-[clamp(1.35rem,3.6vw,2rem)] font-semibold leading-tight tracking-tight">{t.name}</h3>
                   </div>
+                  <span className="h-14 w-[5.25rem] shrink-0 text-paper/80 md:h-16 md:w-24">
+                    {near && active && <ThemeArt key={`${t.slug}-${current}`} theme={t.slug} className="h-14 w-[5.25rem] md:h-16 md:w-24" />}
+                  </span>
+                </div>
 
-                  {/* lado: este × outro, com a pílula deslizando */}
-                  {t.other && (
-                    <div role="tablist" aria-label="Lado" className="mt-3 inline-flex rounded-full border border-paper/25 p-1">
-                      {sides.map((s) => (
-                        <button
-                          key={String(s.key)}
-                          type="button"
-                          role="tab"
-                          aria-selected={other === s.key}
-                          data-side={s.slug}
-                          onClick={() => {
-                            haptic("tap");
-                            setOther(s.key);
-                            setNuance(false);
-                          }}
-                          className={`relative rounded-full px-4 py-1.5 font-mono text-[0.72rem] uppercase tracking-[0.08em] transition-colors ${other === s.key ? "text-paper" : "text-ash hover:text-paper"}`}
-                        >
-                          {other === s.key && <m.span layoutId={`${pillId}-side`} className="absolute inset-0 rounded-full bg-[var(--accent)]" transition={{ type: "spring", stiffness: 420, damping: 32 }} />}
-                          <span className="relative">{s.name}</span>
-                        </button>
-                      ))}
+                {/* o conflito de valores como um cabo de guerra */}
+                {va && vb && (
+                  <div className="mt-3 md:col-start-1" aria-label={`Conflito de valores: ${va} ou ${vb}`}>
+                    <div className="flex justify-between gap-4 text-[0.72rem] leading-tight text-paper/70 md:text-xs">
+                      <span className="max-w-[45%]">{va}</span>
+                      <span className="max-w-[45%] text-right">{vb}</span>
                     </div>
-                  )}
+                    <div className="relative mt-1.5 h-3">
+                      <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-paper/30" />
+                      <m.span
+                        className="absolute left-1/2 top-1/2 -ml-1.5 -mt-1.5 h-3 w-3 rounded-full border-2 border-paper bg-graphite"
+                        animate={current && active ? { x: [0, -18, 14, -8, 0] } : { x: 0 }}
+                        transition={{ duration: 3.2, repeat: current && active ? Infinity : 0, repeatDelay: 0.6, ease: "easeInOut" }}
+                      />
+                    </div>
+                  </div>
+                )}
 
-                  <AnimatePresence mode="wait" initial={false}>
-                    <m.div
-                      key={String(other)}
-                      data-side={other ? data.other.slug : data.side}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.22 }}
-                      className="mt-3 border-l-4 border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent-deep)_40%,transparent)] p-4 md:p-5"
-                      aria-live="polite"
-                    >
-                      {pos ? (
-                        <>
-                          <p className="font-display text-[clamp(1.05rem,2.5vw,1.45rem)] leading-snug">
-                            <Gloss text={pos.summary} />
-                          </p>
+                {/* lado: este × outro, com a pílula deslizando */}
+                {current && t.other && (
+                  <div role="tablist" aria-label="Lado" className="mt-4 inline-flex w-fit self-start rounded-full border border-paper/25 p-1 md:col-start-1">
+                    {[
+                      { key: false, slug: data.side, name: data.sideName },
+                      { key: true, slug: data.other.slug, name: data.other.name },
+                    ].map((s) => (
+                      <button
+                        key={String(s.key)}
+                        type="button"
+                        role="tab"
+                        aria-selected={other === s.key}
+                        data-side={s.slug}
+                        onClick={() => {
+                          haptic("tap");
+                          setOther(s.key);
+                          setNuance(false);
+                        }}
+                        className={`relative rounded-full px-4 py-1.5 font-mono text-[0.72rem] uppercase tracking-[0.08em] transition-colors ${other === s.key ? "text-paper" : "text-ash hover:text-paper"}`}
+                      >
+                        {other === s.key && (
+                          <m.span
+                            key={String(s.key)}
+                            className="absolute inset-0 rounded-full bg-[var(--accent)]"
+                            initial={{ scaleX: 0.4, opacity: 0 }}
+                            animate={{ scaleX: 1, opacity: 1 }}
+                            transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                          />
+                        )}
+                        <span className="relative">{s.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <AnimatePresence mode="wait" initial={false}>
+                  <m.div
+                    key={`${t.slug}-${current && other}`}
+                    data-side={current && other ? data.other.slug : data.side}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.22 }}
+                    className="mt-3 border-l-4 border-[var(--accent)] pl-4 md:col-start-2 md:row-span-3 md:row-start-1 md:mt-0"
+                    aria-live={current ? "polite" : undefined}
+                  >
+                    {pos ? (
+                      <>
+                        <p className="font-display text-[clamp(1.02rem,2.4vw,1.35rem)] leading-snug">
+                          <Gloss text={pos.summary} />
+                        </p>
+                        {current && (
                           <ul className="mt-3 flex flex-wrap gap-1.5">
                             {pos.points.map((p, i) => (
                               <m.li
@@ -923,48 +1119,57 @@ function ThemesSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.15 + i * 0.1, type: "spring", stiffness: 320, damping: 22 }}
-                                className="inline-flex items-start gap-1.5 rounded-2xl border border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-graphite/40 px-3 py-1.5 text-[0.85rem] leading-snug text-paper/90"
+                                className="inline-flex items-start gap-1.5 rounded-2xl border border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-graphite/40 px-3 py-1.5 text-[0.82rem] leading-snug text-paper/90"
                               >
                                 <Check aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-ink)]" strokeWidth={2.5} />
                                 {p}
                               </m.li>
                             ))}
                           </ul>
-                          {pos.nuances && (
-                            <div className="mt-3">
-                              <button type="button" onClick={() => setNuance((v) => !v)} aria-expanded={nuance} className="inline-flex min-h-8 items-center gap-1 font-mono text-[0.68rem] uppercase tracking-[0.08em] text-ev-critique hover:underline">
-                                Ressalva <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${nuance ? "rotate-180" : ""}`} />
-                              </button>
-                              <AnimatePresence initial={false}>
-                                {nuance && (
-                                  <m.p initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-[0.82rem] leading-snug text-paper/70">
-                                    {pos.nuances}
-                                  </m.p>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <p className="text-ash">Conteúdo deste tema em revisão editorial.</p>
-                      )}
-                    </m.div>
-                  </AnimatePresence>
-                </m.div>
-              </AnimatePresence>
+                        )}
+                        {current && pos.nuances && (
+                          <div className="mt-2">
+                            <button type="button" onClick={() => setNuance((v) => !v)} aria-expanded={nuance} className="inline-flex min-h-8 items-center gap-1 font-mono text-[0.68rem] uppercase tracking-[0.08em] text-ev-critique hover:underline">
+                              Ressalva <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${nuance ? "rotate-180" : ""}`} />
+                            </button>
+                            <AnimatePresence initial={false}>
+                              {nuance && (
+                                <m.p initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-[0.8rem] leading-snug text-paper/70">
+                                  {pos.nuances}
+                                </m.p>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-ash">Conteúdo deste tema em revisão editorial.</p>
+                    )}
+                  </m.div>
+                </AnimatePresence>
+              </m.article>
+            );
+          })}
+        </m.div>
+      </div>
 
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <span className="font-mono text-[0.68rem] uppercase tracking-[0.08em] text-ash">
-                  <span className="hidden md:inline">← → troca de tema</span>
-                  <span className="md:hidden">Arraste para o lado</span>
-                </span>
-                <Link href={slide.fullHref} className="inline-flex min-h-10 items-center font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ash underline underline-offset-4 hover:text-paper">
-                  Ver com fontes
-                </Link>
-              </div>
-            </m.div>
-          )}
-        </AnimatePresence>
+      {/* pontos: onde estou no carrossel (toque para pular) */}
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="flex flex-wrap items-center gap-1.5">
+          {slide.items.map((t, k) => (
+            <button
+              key={t.slug}
+              type="button"
+              onClick={() => go(k)}
+              aria-label={`Ir para ${t.name}`}
+              aria-current={k === index ? "true" : undefined}
+              className={`h-2 rounded-full transition-all ${k === index ? "w-6 bg-paper" : "w-2 bg-paper/25 hover:bg-paper/50"}`}
+            />
+          ))}
+        </span>
+        <Link href={slide.fullHref} className="inline-flex min-h-10 shrink-0 items-center font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ash underline underline-offset-4 hover:text-paper">
+          Ver com fontes
+        </Link>
       </div>
     </Stage>
   );

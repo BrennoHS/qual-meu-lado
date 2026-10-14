@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getMyths } from "@/lib/content/queries";
 import { PageFrame } from "@/components/site/page-frame";
-import { MythGame } from "./myth-game";
+import { MythDeck } from "@/components/myths/myth-deck";
 
 export const revalidate = 300;
 export const metadata: Metadata = {
@@ -16,9 +16,10 @@ export default async function MythsPage() {
     <PageFrame
       kicker="Mitos e realidades"
       title="É fato?"
-      lead="Classifique cada afirmação antes de ver a explicação. Não há placar: o objetivo é conferir o raciocínio — e as fontes. Afirmações falsas não são tratadas como “o outro lado” de um debate."
+      lead="Uma afirmação por vez: dê seu palpite antes de ver a explicação. Não há placar — o objetivo é conferir o raciocínio e as fontes. Afirmações falsas não são tratadas como “o outro lado” de um debate."
+      narrow
     >
-      <MythGame myths={myths} claims={claims} />
+      <MythDeck myths={myths} claims={claims} />
     </PageFrame>
   );
 }

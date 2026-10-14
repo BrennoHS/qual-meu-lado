@@ -30,12 +30,21 @@ export type SideSlide = Base &
         counterpart: { sideSlug: string; sideName: string; title: string; keyPoints: string[] } | null;
       }
     | { kind: "lead"; text: string }
-    | { kind: "text"; title?: string; body: string }
+    | {
+        kind: "text";
+        title?: string;
+        body: string;
+        /** Texto em passos ("Primeiro…", "Depois…"): uma tela só, tocar avança entre os passos. */
+        steps?: { label: string; body: string; art?: string }[];
+        /** Texto longo dividido em telas: parte i de n. */
+        part?: { i: number; n: number };
+        art?: string;
+      }
     | { kind: "illustration"; name: IllustrationName; title?: string; caption?: string }
     | { kind: "glossary"; title?: string; items: { term: string; definition: string }[] }
     | { kind: "fact"; title?: string; claim: ClaimView | null }
     | { kind: "curiosity"; text: string; claim: ClaimView | null }
-    | { kind: "example"; title: string; body: string }
+    | { kind: "example"; title: string; body: string; art?: string }
     | { kind: "pulse"; statement: StatementView; prompt?: string }
     | { kind: "conflict"; title: string; values: [string, string]; scenario: string; tension: string }
     | {
@@ -48,6 +57,7 @@ export type SideSlide = Base &
         claim: ClaimView | null;
         n: number;
         total: number;
+        art?: string;
       }
     | { kind: "counterpoint"; prompt: string; thisSide: string; otherSide: string; n: number; total: number }
     | {
@@ -59,6 +69,8 @@ export type SideSlide = Base &
           slug: string;
           name: string;
           description: string;
+          /** Conflito de valores do tema (ex.: "Liberdade × igualdade"). */
+          conflict: string | null;
           mine: { summary: string; points: string[]; nuances: string } | null;
           other: { summary: string; points: string[]; nuances: string } | null;
         }[];

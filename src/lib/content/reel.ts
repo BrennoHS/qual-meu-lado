@@ -11,6 +11,44 @@ import type { CandidateReelData, CandidateSlide, CandidateSummary, SideReelData,
 
 type Side = "esquerda" | "direita";
 
+/** Parágrafo que abre com um rótulo em negrito ("**Primeiro**, …"). */
+const STEP = /^\*\*([^*]{1,40})\*\*[,:]?\s*/;
+/** Limite de texto por tela: cada tela cabe inteira, sem rolar. */
+const MAX_TEXT = 420;
+
+/**
+ * Texto em telas do tamanho da tela:
+ *  - em passos (todo parágrafo abre com rótulo em negrito): uma tela por passo,
+ *    com a linha do tempo no topo;
+ *  - longo: telas de até ~420 caracteres, sem quebrar parágrafo;
+ *  - curto: uma tela só.
+ */
+function textSlides(block: Extract<Block, { type: "text" }>, seg: number, k: (suffix: string | number) => string): SideSlide[] {
+  const layer = block.layer;
+  const paras = block.body.split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean);
+  const key = (i: number) => (i === 0 ? k("text") : k(`text-${i + 1}`));
+  if (paras.length >= 2 && paras.every((p) => STEP.test(p))) {
+    // uma tela só, com toque para avançar entre os passos
+    const steps = paras.map((p, i) => {
+      const rest = p.replace(STEP, "");
+      return { label: p.match(STEP)?.[1] ?? "", body: rest.charAt(0).toUpperCase() + rest.slice(1), art: block.art?.[i] };
+    });
+    return [{ key: key(0), seg, layer, kind: "text", title: block.title, body: block.body, steps }];
+  }
+  if (block.body.length > MAX_TEXT && paras.length >= 2) {
+    const chunks: string[] = [];
+    for (const p of paras) {
+      const last = chunks[chunks.length - 1];
+      if (last !== undefined && last.length + p.length + 2 <= MAX_TEXT) chunks[chunks.length - 1] = `${last}\n\n${p}`;
+      else chunks.push(p);
+    }
+    if (chunks.length > 1) {
+      return chunks.map((body, i) => ({ key: key(i), seg, layer, kind: "text" as const, title: block.title, body, part: { i, n: chunks.length }, art: block.art?.[i] }));
+    }
+  }
+  return [{ key: key(0), seg, layer, kind: "text", title: block.title, body: block.body, art: block.art?.[0] }];
+}
+
 /** Converte um bloco editorial em uma ou mais telas do reel. */
 function blockSlides(block: Block, bundle: ChapterBundle, seg: number, base: string, fullHref: string): SideSlide[] {
   const layer = block.layer;
@@ -20,7 +58,7 @@ function blockSlides(block: Block, bundle: ChapterBundle, seg: number, base: str
     case "lead":
       return [{ key: k("lead"), seg, layer, kind: "lead", text: block.text }];
     case "text":
-      return [{ key: k("text"), seg, layer, kind: "text", title: block.title, body: block.body }];
+      return textSlides(block, seg, k);
     case "illustration":
       return [{ key: k("ill"), seg, layer, kind: "illustration", name: block.name, title: block.title, caption: block.caption }];
     case "glossary":
@@ -32,7 +70,7 @@ function blockSlides(block: Block, bundle: ChapterBundle, seg: number, base: str
       return c ? [{ key: k("dyk"), seg, layer, kind: "curiosity", text: c.text, claim: claim(c.claimKey ?? undefined) }] : [];
     }
     case "example":
-      return [{ key: k("ex"), seg, layer, kind: "example", title: block.title, body: block.body }];
+      return [{ key: k("ex"), seg, layer, kind: "example", title: block.title, body: block.body, art: block.art }];
     case "pulse": {
       const st = bundle.statements.find((s) => s.key === block.statementKey);
       return st ? [{ key: k("pulse"), seg, layer, kind: "pulse", statement: st, prompt: block.prompt }] : [];
@@ -58,6 +96,7 @@ function blockSlides(block: Block, bundle: ChapterBundle, seg: number, base: str
         claim: claim(it.claimKeys[0]),
         n: i + 1,
         total: block.items.length,
+        art: it.art,
       }));
     case "counterpoints":
       return block.items.map((it, i) => ({
@@ -90,6 +129,7 @@ function blockSlides(block: Block, bundle: ChapterBundle, seg: number, base: str
             slug: t.slug,
             name: t.name,
             description: t.description,
+            conflict: t.valueConflict ?? null,
             mine: pick(t, side),
             other: pick(t, side === "LEFT" ? "RIGHT" : "LEFT"),
           })),
@@ -260,7 +300,7 @@ async function buildCandidateReel(slug: string): Promise<CandidateReelData | nul
  * Versões em cache (5 min, e invalidadas pela tag "content" quando o painel publica algo):
  * o reel junta muitos capítulos, e páginas com parâmetros de compartilhamento são dinâmicas.
  */
-export const getSideReel = (side: Side) => unstable_cache(() => buildSideReel(side), ["side-reel", side, "v5"], { revalidate: 300, tags: ["content"] })();
+export const getSideReel = (side: Side) => unstable_cache(() => buildSideReel(side), ["side-reel", side, "v7"], { revalidate: 300, tags: ["content"] })();
 export const getCandidateReel = (slug: string) => unstable_cache(() => buildCandidateReel(slug), ["candidate-reel", slug, "v4"], { revalidate: 300, tags: ["content"] })();
 
 /** Soma do tempo estimado da camada essencial. */

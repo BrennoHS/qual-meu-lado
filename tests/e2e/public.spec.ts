@@ -166,19 +166,60 @@ test.describe("experiência pública", () => {
     await page.goto("/explorar/esquerda#o-que-defende-3-themes");
     const slide = page.locator("section[data-active=true]");
     await expect(slide).toHaveAttribute("id", "o-que-defende-3-themes");
-    // todos os temas à vista (inclusive os do fim da lista), cada um abre seu cartão
-    const last = slide.getByRole("button", { name: /democracia e instituições/i });
-    await expect(last).toBeInViewport();
-    await last.click();
-    await expect(slide.getByRole("heading", { name: /democracia e instituições/i })).toBeVisible();
-    const card = slide.locator("[aria-live=polite]").filter({ has: page.locator("p.font-display") });
+    // carrossel: os pontos levam a qualquer tema (inclusive o último)
+    const current = slide.locator("article[aria-hidden=false]");
+    await expect(current.locator("h3")).toHaveText(/papel do estado/i);
+    await slide.getByRole("button", { name: /ir para democracia e instituições/i }).click();
+    await expect(current.locator("h3")).toHaveText(/democracia e instituições/i);
+    // o mesmo tema pelo outro lado
+    const card = current.locator("[aria-live=polite]");
     const mine = await card.innerText();
-    await slide.getByRole("tab", { name: "Direita" }).click();
-    await expect(slide.getByRole("tab", { name: "Direita" })).toHaveAttribute("aria-selected", "true");
+    await current.getByRole("tab", { name: "Direita" }).click();
+    await expect(current.getByRole("tab", { name: "Direita" })).toHaveAttribute("aria-selected", "true");
     await expect(card).not.toHaveText(mine);
-    // próximo tema sem voltar à grade (dá a volta no fim da lista)
-    await slide.getByRole("button", { name: "Próximo tema" }).click();
-    await expect(slide.getByRole("heading", { name: /papel do estado/i })).toBeVisible();
+    // arrastar para o lado troca de tema
+    await slide.getByRole("button", { name: /ir para papel do estado/i }).click();
+    await expect(current.locator("h3")).toHaveText(/papel do estado/i);
+    await expect(current).toBeInViewport({ ratio: 0.95 }); // espera o carrossel parar de deslizar
+    await page.waitForTimeout(300);
+    const box = (await current.boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.8, box.y + 40);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.2, box.y + 40, { steps: 8 });
+    await page.mouse.up();
+    await expect(current.locator("h3")).toHaveText(/economia e mercado/i);
+  });
+
+  test("história em passos: tocar avança, volta ao primeiro, e no fim aparece a seta para seguir", async ({ page }) => {
+    await page.goto("/explorar/esquerda#origens-3-text", { waitUntil: "networkidle" });
+    const slide = page.locator("#origens-3-text");
+    const label = slide.locator("h2");
+    await expect(label).toHaveText(/primeiro/i);
+    await expect(slide.getByText(/toque para avançar/i)).toBeVisible();
+    await slide.locator(".rt").first().click();
+    await expect(label).toHaveText(/depois/i);
+    await slide.locator(".rt").first().click();
+    await expect(label).toHaveText(/século 20/i);
+    await expect(slide.getByText(/role para continuar/i)).toBeVisible();
+    await slide.locator(".rt").first().click();
+    await expect(label).toHaveText(/primeiro/i);
+  });
+
+  test("mitos: um palpite vira o cartão com o veredito, e a próxima afirmação entra", async ({ page }) => {
+    await page.goto("/mitos", { waitUntil: "networkidle" });
+    const card = page.locator("article").first();
+    const first = await card.locator("p.font-display").innerText();
+    await card.getByRole("button", { name: "Verdade", exact: true }).click();
+    await expect(card.getByText(/seu palpite bateu|você disse/i)).toBeVisible();
+    await page.getByRole("button", { name: /próxima/i }).click();
+    await expect(page.locator("article").first().locator("p.font-display")).not.toHaveText(first);
+  });
+
+  test("home: o mito do dia revela o veredito e leva aos outros", async ({ page }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    const sec = page.locator("section", { has: page.locator("#mito") });
+    await sec.getByRole("button", { name: "Mito", exact: true }).click();
+    await expect(sec.getByRole("link", { name: /mais \d+ afirmações/i })).toHaveAttribute("href", "/mitos");
   });
 
   test("virar para o plano e voltar mantém o card visível", async ({ page }) => {

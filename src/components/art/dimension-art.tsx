@@ -1,6 +1,9 @@
 "use client";
 
+import { useRef } from "react";
+import { useInView } from "motion/react";
 import * as m from "motion/react-m";
+import { EXPLAINERS } from "./explainers";
 
 /**
  * Vinhetas das 8 dimensões do questionário. Mesma linguagem das ilustrações
@@ -217,6 +220,14 @@ function Seats({ lado }: { lado: "esquerda" | "direita" }) {
 
 /** Vinheta avulsa (mesmo traço): para telas do reel e para a home. */
 export function Vignette({ name, className = "h-16 w-24" }: { name: string; className?: string }) {
+  const explainer = EXPLAINERS[name];
+  if (explainer) {
+    return (
+      <svg viewBox="0 0 120 80" className={className} aria-hidden>
+        {explainer}
+      </svg>
+    );
+  }
   if (name === "assentos-esquerda" || name === "assentos-direita") {
     return (
       <svg viewBox="0 0 120 80" className={className} aria-hidden>
@@ -256,5 +267,16 @@ export function DimensionArt({ dimension, className = "h-16 w-24" }: { dimension
     <svg viewBox="0 0 120 80" className={className} aria-hidden>
       {art}
     </svg>
+  );
+}
+
+/** Vinheta que só se desenha quando entra na tela (seções mais abaixo da página). */
+export function InViewVignette({ name, className = "h-12 w-[4.5rem]" }: { name: string; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const seen = useInView(ref, { once: true, margin: "-10% 0px" });
+  return (
+    <span ref={ref} aria-hidden className={`block ${className}`}>
+      {seen && <Vignette name={name} className={className} />}
+    </span>
   );
 }
