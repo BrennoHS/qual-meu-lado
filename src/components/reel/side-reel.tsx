@@ -1030,15 +1030,15 @@ function ThemesSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind
                 style={{ width: cardW || "86%", flexShrink: 0 }}
                 className={`border bg-graphite-2/95 p-5 md:grid md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:grid-rows-[auto_auto_1fr] md:gap-x-6 md:p-6 ${current ? "border-paper/30" : "cursor-pointer border-line"}`}
               >
-                <div className="flex items-start justify-between gap-3 md:col-start-1">
-                  <div className="min-w-0">
+                <div className="flex items-start justify-between gap-3 md:col-start-1 md:flex-col md:justify-start md:gap-2">
+                  <div className="min-w-0 md:order-2">
                     <p className="kicker text-ash">
                       {k + 1}/{total}
                     </p>
-                    <h3 className="mt-1 font-display text-[clamp(1.35rem,3.6vw,2rem)] font-semibold leading-tight tracking-tight">{t.name}</h3>
+                    <h3 lang="pt-BR" className="mt-1 font-display text-[clamp(1.35rem,3.6vw,2rem)] font-semibold leading-tight tracking-tight [overflow-wrap:anywhere] hyphens-auto md:text-[1.6rem]">{t.name}</h3>
                   </div>
-                  <span className="h-14 w-[5.25rem] shrink-0 text-paper/80 md:h-16 md:w-24">
-                    {near && active && <ThemeArt key={`${t.slug}-${current}`} theme={t.slug} className="h-14 w-[5.25rem] md:h-16 md:w-24" />}
+                  <span className="h-14 w-[5.25rem] shrink-0 text-paper/80 md:order-1 md:h-14 md:w-[5.25rem]">
+                    {near && active && <ThemeArt key={`${t.slug}-${current}`} theme={t.slug} className="h-14 w-[5.25rem]" />}
                   </span>
                 </div>
 

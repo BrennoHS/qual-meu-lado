@@ -339,29 +339,35 @@ function FitBox({ className, children }: { className: string; children: React.Re
     const el = inner.current;
     if (!box || !el) return;
     let frame = 0;
-    let current = "";
+    // O zoom só DIMINUI enquanto a janela não muda de tamanho. Sem isso, há telas
+    // em que encolher muda a própria medida (ex.: o carrossel mede a largura) e o
+    // ajuste fica oscilando. Ao redimensionar a janela, recomeça do zero.
+    let current = 1;
     const fit = () => {
       frame = 0;
-      const prev = el.style.zoom;
       el.style.zoom = "";
       const cs = getComputedStyle(box);
       const viewport = box.closest<HTMLElement>(".reel-scroller")?.clientHeight ?? window.innerHeight;
       const avail = viewport - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
       const need = el.scrollHeight;
-      const next = need > avail + 2 ? String(Math.max(MIN_FIT, Math.floor((avail / need) * 100) / 100)) : "";
-      el.style.zoom = next === current ? prev : next;
-      current = next;
+      const wanted = need > avail + 2 ? Math.max(MIN_FIT, Math.floor((avail / need) * 100) / 100) : 1;
+      current = Math.min(current, wanted);
+      el.style.zoom = current < 1 ? String(current) : "";
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(fit);
     };
+    const onResize = () => {
+      current = 1;
+      schedule();
+    };
     fit();
     const ro = new ResizeObserver(schedule);
     ro.observe(el);
-    window.addEventListener("resize", schedule);
+    window.addEventListener("resize", onResize);
     return () => {
       ro.disconnect();
-      window.removeEventListener("resize", schedule);
+      window.removeEventListener("resize", onResize);
       if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
