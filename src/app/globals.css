@@ -217,6 +217,10 @@ body {
 /* Faixa rolável sem barra nativa; a borda esmaece para indicar que há mais. */
 .scroll-strip { scrollbar-width: none; mask-image: linear-gradient(90deg, #000 85%, transparent); }
 .scroll-strip::-webkit-scrollbar { display: none; }
+/* No computador não há como "deslizar" a faixa: as pílulas quebram linha. */
+@media (min-width: 768px) {
+  .scroll-strip { flex-wrap: wrap; overflow-x: visible; mask-image: none; }
+}
 
 /* ── Reel ────────────────────────────────────────────────────────
    Barra de rolagem escondida (a navegação é o deslize/os botões). */

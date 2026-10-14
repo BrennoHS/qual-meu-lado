@@ -28,6 +28,8 @@ const CONFETTI = Array.from({ length: 28 }, (_, i) => {
 export function SideReveal({ result, total, answered }: { result: OverallResult; total: number; answered: number }) {
   const reduce = useReducedMotion();
   const [revealed, setRevealed] = useState(!!reduce);
+  // se a imagem do card falhar, some com a moldura e o download (o link continua)
+  const [cardFailed, setCardFailed] = useState(false);
   const c = SIDE_SHARE[result.side];
   const t = THEME[result.side];
 
@@ -128,13 +130,17 @@ export function SideReveal({ result, total, answered }: { result: OverallResult;
                 transition={{ delay: 1.7, type: "spring", stiffness: 120, damping: 14 }}
                 className="mx-auto w-full max-w-[16rem]"
               >
-                <div className="relative aspect-[9/16] overflow-hidden rounded-2xl border border-paper/40 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
-                  <Image src={storyUrl} alt={`Card para stories: ${identifyPrefix(result.side).toLowerCase()} ${c.word.toLowerCase()}`} fill sizes="256px" unoptimized className="object-cover" />
-                </div>
+                {!cardFailed && (
+                  <div className="relative aspect-[9/16] overflow-hidden rounded-2xl border border-paper/40 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+                  <Image src={storyUrl} alt={`Card para stories: ${identifyPrefix(result.side).toLowerCase()} ${c.word.toLowerCase()}`} fill sizes="256px" unoptimized className="object-cover" onError={() => setCardFailed(true)} />
+                  </div>
+                )}
                 <div className="mt-5 flex flex-col items-center gap-2">
-                  <a href={storyUrl} download={`dois-lados-afinidade-${result.side}.png`} onClick={() => haptic("tap")} className="btn btn-solid w-full">
-                    Baixar para os stories
-                  </a>
+                  {!cardFailed && (
+                    <a href={storyUrl} download={`dois-lados-afinidade-${result.side}.png`} onClick={() => haptic("tap")} className="btn btn-solid w-full">
+                      Baixar para os stories
+                    </a>
+                  )}
                   <ShareChip path={sharePath} title={`${identifyPrefix(result.side)} ${c.word.toLowerCase()} · DOIS LADOS`} text={`${identifyPrefix(result.side)} ${c.word}. “${c.belief}” E você? Faça o teste de afinidade do DOIS LADOS:`} label="Compartilhar no WhatsApp ou link" />
                 </div>
               </m.div>

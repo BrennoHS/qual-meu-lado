@@ -94,7 +94,52 @@ const ART: Record<string, React.ReactNode> = {
       <m.path d="M28 24 l-8 18 h16 Z M92 24 l-8 18 h16 Z" {...S} {...D(0.45)} />
     </>
   ),
+  // Desigualdade: colunas de alturas muito diferentes e uma seta que tenta nivelar
+  desigualdade: (
+    <>
+      <m.path d="M14 70 H106" {...S} {...D(0)} />
+      <m.path d="M24 70 V60 M40 70 V56 M56 70 V50 M72 70 V40 M88 70 V18" {...S} strokeWidth={6} strokeLinecap="butt" {...D(0.2)} />
+      <m.path d="M20 30 C 44 26, 64 26, 80 28" {...S} strokeDasharray="3 4" {...D(0.7)} />
+      <m.path d="M74 23 l6 5 l-6 5" {...S} {...D(1)} />
+    </>
+  ),
+  // Educação: livro aberto e um capelo
+  educacao: (
+    <>
+      <m.path d="M60 36 C 50 28, 34 26, 20 28 V66 C 34 64, 50 66, 60 72 C 70 66, 86 64, 100 66 V28 C 86 26, 70 28, 60 36 Z" {...S} {...D(0)} />
+      <m.path d="M60 36 V72" {...S} {...D(0.35)} />
+      <m.path d="M60 6 L84 15 L60 24 L36 15 Z" {...S} {...P(0.6)} />
+      <m.path d="M84 15 V25" {...S} {...D(0.9)} />
+    </>
+  ),
+  // Saúde: coração com a linha do batimento
+  saude: (
+    <>
+      <m.path d="M60 70 C 30 52, 18 40, 18 28 a 14 14 0 0 1 42 -6 a 14 14 0 0 1 42 6 C 102 40, 90 52, 60 70 Z" {...S} {...D(0)} />
+      <m.path d="M26 42 H44 l6 -12 l8 22 l6 -10 H94" {...S} strokeWidth={2} {...D(0.6)} />
+    </>
+  ),
 };
+
+/** Tema (slug do conteúdo) → vinheta. */
+const THEME_ART: Record<string, string> = {
+  "papel-do-estado": "estado",
+  economia: "economia",
+  desigualdade: "desigualdade",
+  liberdades: "liberdades",
+  "seguranca-publica": "seguranca",
+  "politicas-sociais": "social",
+  educacao: "educacao",
+  saude: "saude",
+  "valores-e-costumes": "costumes",
+  "meio-ambiente": "ambiente",
+  "democracia-e-instituicoes": "instituicoes",
+};
+
+/** Vinheta de um tema (mesmo traço das dimensões do questionário). */
+export function ThemeArt({ theme, className = "h-16 w-24" }: { theme: string; className?: string }) {
+  return <DimensionArt dimension={THEME_ART[theme] ?? "instituicoes"} className={className} />;
+}
 
 /** Vinheta animada da dimensão (re-desenha a cada nova pergunta via `key`). */
 export function DimensionArt({ dimension, className = "h-16 w-24" }: { dimension: string; className?: string }) {

@@ -37,6 +37,15 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "1mb" },
   },
+  // As imagens de prévia (/og/*) leem a fonte e os retratos do disco em tempo de
+  // execução (src/lib/og.ts). Na Vercel, só vai para a função o que for declarado aqui.
+  outputFileTracingIncludes: {
+    "/og/**/*": [
+      "./node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-400-normal.woff",
+      "./node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff",
+      "./public/candidatos/*.png",
+    ],
+  },
   // Ferramentas de propostas foram unificadas em /segundo-turno (as fichas individuais continuam).
   async redirects() {
     return [

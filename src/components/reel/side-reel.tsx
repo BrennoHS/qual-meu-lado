@@ -1,8 +1,8 @@
 "use client";
 
-import { ArrowLeftRight, BookOpen, Check, ChevronDown, Layers, RotateCcw } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Layers, LayoutGrid, Pause, Play, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import type { SideReelData, SideSlide } from "@/lib/reel/types";
@@ -14,6 +14,7 @@ import { SourceButton } from "@/components/evidence/source-panel";
 import { Glossary, Pulse } from "@/components/walkthrough/micro";
 import { Illustration, Scale } from "@/components/art/illustrations";
 import { ChapterArt } from "@/components/art/chapter-art";
+import { ThemeArt } from "@/components/art/dimension-art";
 import { TLink } from "@/components/transition/transition-provider";
 import { Kinetic, Reel, pop, rise, stage, useReel } from "./reel";
 import { DeepSwitch, ReelClose } from "./controls";
@@ -442,41 +443,95 @@ function CoverSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind:
   );
 }
 
-/** Os 3 pontos do capítulo, um por vez: barra de progresso por ponto, avança sozinho; toque adianta. */
+/**
+ * Os pontos do capítulo, um por vez (como um story): 12 s cada, setas para
+ * voltar/adiantar, toque nas laterais do texto também navega, e segurar o
+ * texto (ou o botão de pausa) congela a leitura.
+ */
+const POINT_MS = 12_000;
+const TICK_MS = 100;
+
 function KeyPointsStory({ points, active }: { points: string[]; active: boolean }) {
   const [i, setI] = useState(0);
-  const DURATION = 4.2;
+  const [elapsed, setElapsed] = useState(0);
+  const [held, setHeld] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const press = useRef<{ timer: number | null; hold: boolean } | null>(null);
+  const last = points.length - 1;
+  const stopped = !active || held || paused;
+
   useEffect(() => {
-    if (!active) {
-      setI(0);
-      return;
-    }
-    if (i >= points.length - 1) return;
-    const t = window.setTimeout(() => setI((v) => v + 1), DURATION * 1000 + (i === 0 ? 700 : 0));
-    return () => window.clearTimeout(t);
-  }, [active, i, points.length]);
+    if (active) return;
+    setI(0);
+    setElapsed(0);
+    setPaused(false);
+    setHeld(false);
+  }, [active]);
+
+  useEffect(() => {
+    if (stopped) return;
+    const id = window.setInterval(() => setElapsed((e) => Math.min(e + TICK_MS, POINT_MS)), TICK_MS);
+    return () => window.clearInterval(id);
+  }, [stopped]);
+
+  useEffect(() => {
+    if (elapsed < POINT_MS || i >= last) return;
+    setI((v) => v + 1);
+    setElapsed(0);
+  }, [elapsed, i, last]);
+
+  function go(n: number) {
+    if (n < 0 || n > last) return;
+    haptic("tap");
+    setI(n);
+    setElapsed(0);
+  }
+
+  function endPress() {
+    const p = press.current;
+    press.current = null;
+    if (p?.timer) window.clearTimeout(p.timer);
+    if (p?.hold) setHeld(false);
+    return p;
+  }
+
+  const frozen = held || paused;
+
   return (
     <m.div initial={{ opacity: 0, y: 14 }} animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }} transition={{ delay: active ? 0.6 : 0 }} className="mt-6 max-w-2xl">
       <div className="flex gap-1.5" aria-hidden>
         {points.map((_, k) => (
           <span key={k} className="h-[3px] flex-1 overflow-hidden rounded-full bg-paper/15">
-            <m.span
-              key={`${k}-${active}-${i >= k}`}
-              className="block h-full origin-left bg-[var(--accent-ink)]"
-              initial={{ scaleX: k < i ? 1 : 0 }}
-              animate={{ scaleX: k < i ? 1 : k === i && active ? 1 : 0 }}
-              transition={k === i ? { duration: k === points.length - 1 ? 1.2 : DURATION, ease: "linear", delay: k === 0 ? 0.7 : 0 } : { duration: 0 }}
+            <span
+              className="block h-full bg-[var(--accent-ink)] transition-[width] duration-100 ease-linear"
+              style={{ width: `${k < i ? 100 : k === i ? (elapsed / POINT_MS) * 100 : 0}%` }}
             />
           </span>
         ))}
       </div>
+
       <div
-        onClick={(e) => {
-          // toque no cartão adianta (menos quando é numa palavra do glossário)
-          if ((e.target as HTMLElement).closest(".gloss")) return;
-          setI((v) => (v + 1) % points.length);
+        onPointerDown={(e) => {
+          // palavra do glossário abre a explicação; não conta como toque no story
+          if ((e.target as HTMLElement).closest(".gloss, button, a")) return;
+          const p = { timer: null as number | null, hold: false };
+          p.timer = window.setTimeout(() => {
+            p.hold = true;
+            setHeld(true);
+          }, 260);
+          press.current = p;
         }}
-        className="mt-3 block w-full cursor-pointer text-left"
+        onPointerUp={(e) => {
+          const p = endPress();
+          if (!p || p.hold) return;
+          // toque curto: lateral esquerda volta, o resto adianta
+          const r = e.currentTarget.getBoundingClientRect();
+          go(e.clientX - r.left < r.width * 0.3 ? i - 1 : i + 1);
+        }}
+        onPointerLeave={endPress}
+        onPointerCancel={endPress}
+        onContextMenu={(e) => e.preventDefault()}
+        className="mt-3 block w-full cursor-pointer select-none text-left [-webkit-touch-callout:none]"
         aria-live="polite"
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -486,7 +541,7 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -24 }}
             transition={{ duration: 0.3 }}
-            className="flex min-h-[4.5rem] gap-3 font-display text-[1.15rem] leading-snug md:text-[1.35rem]"
+            className={`flex min-h-[4.5rem] gap-3 font-display text-[1.15rem] leading-snug md:text-[1.35rem]`}
           >
             <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--accent)] font-mono text-xs font-bold text-paper">{i + 1}</span>
             <span>
@@ -494,6 +549,35 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
             </span>
           </m.p>
         </AnimatePresence>
+      </div>
+
+      {/* controles: voltar · pausar · adiantar — e a dica de segurar */}
+      <div className="mt-2 flex items-center gap-1">
+        <button type="button" onClick={() => go(i - 1)} disabled={i === 0} aria-label="Ponto anterior" className="grid h-9 w-9 place-items-center rounded-full border border-paper/20 text-paper/80 transition-colors hover:border-paper hover:text-paper disabled:opacity-30">
+          <ChevronLeft aria-hidden className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setPaused((v) => !v)}
+          aria-label={paused ? "Continuar" : "Pausar"}
+          aria-pressed={paused}
+          className="grid h-9 w-9 place-items-center rounded-full border border-paper/20 text-paper/80 transition-colors hover:border-paper hover:text-paper"
+        >
+          {paused ? <Play aria-hidden className="h-3.5 w-3.5" /> : <Pause aria-hidden className="h-3.5 w-3.5" />}
+        </button>
+        <button type="button" onClick={() => go(i + 1)} disabled={i === last} aria-label="Próximo ponto" className="grid h-9 w-9 place-items-center rounded-full border border-paper/20 text-paper/80 transition-colors hover:border-paper hover:text-paper disabled:opacity-30">
+          <ChevronRight aria-hidden className="h-4 w-4" />
+        </button>
+        <span className="ml-2 font-mono text-[0.66rem] uppercase tracking-[0.08em] text-ash" aria-live="polite">
+          {frozen ? (
+            <span className="text-paper">Pausado{held ? " · solte para seguir" : ""}</span>
+          ) : (
+            <>
+              <span className="md:hidden">Segure o texto para ler com calma</span>
+              <span className="hidden md:inline">Clique e segure o texto para pausar</span>
+            </>
+          )}
+        </span>
       </div>
     </m.div>
   );
@@ -666,93 +750,220 @@ function CounterpointSlide({ slide, active, data }: { slide: Extract<SideSlide, 
   );
 }
 
-/** Tema por tema: toque num tema para ver a posição deste lado — e, se quiser, a do outro. */
+/**
+ * Tema por tema, em dois passos leves: uma grade de temas ilustrados (todos à
+ * vista, nada escondido) e, ao tocar, um cartão por vez — com troca de lado
+ * e "próximo tema" sem voltar à grade.
+ */
 function ThemesSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind: "themes" }>; active: boolean; data: SideReelData }) {
-  const [sel, setSel] = useState(0);
+  const [sel, setSel] = useState<number | null>(null);
   const [other, setOther] = useState(false);
-  const t = slide.items[sel];
-  const pos = t ? (other ? t.other : t.mine) : null;
-  const sideSlug = other ? data.other.slug : data.side;
-  const sideName = other ? data.other.name : data.sideName;
+  const [dir, setDir] = useState(1);
+  const [seen, setSeen] = useState<Set<number>>(() => new Set());
+  const [nuance, setNuance] = useState(false);
+  const pillId = useId();
+  const total = slide.items.length;
 
-  function choose(i: number) {
+  useEffect(() => {
+    if (!active) setSel(null);
+  }, [active]);
+
+  function open(i: number, d = 1) {
     haptic("tap");
+    setDir(d);
     setSel(i);
     setOther(false);
+    setNuance(false);
+    setSeen((s) => new Set(s).add(i));
   }
+  const step = (d: number) => sel !== null && open((sel + d + total) % total, d);
   function onKey(e: React.KeyboardEvent) {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-    e.preventDefault();
-    e.stopPropagation();
-    choose((sel + (e.key === "ArrowRight" ? 1 : -1) + slide.items.length) % slide.items.length);
+    if (sel === null) return;
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      e.stopPropagation();
+      step(e.key === "ArrowRight" ? 1 : -1);
+    } else if (e.key === "Escape") setSel(null);
   }
+
+  const t = sel !== null ? slide.items[sel] : null;
+  const pos = t ? (other ? t.other : t.mine) : null;
+  const sides = [
+    { key: false, slug: data.side, name: data.sideName },
+    { key: true, slug: data.other.slug, name: data.other.name },
+  ];
 
   return (
     <Stage active={active}>
-      <DeepTag layer={slide.layer} />
-      <m.h2 variants={rise} className="font-display text-[clamp(1.5rem,4vw,2.2rem)] font-semibold tracking-tight">
-        {slide.title} <span className="font-sans text-sm font-normal text-ash">· toque em um tema</span>
-      </m.h2>
-      <m.div variants={rise} role="tablist" aria-label="Temas" onKeyDown={onKey} className="scroll-strip -mx-[var(--gutter)] mt-3 flex gap-2 overflow-x-auto px-[var(--gutter)] pb-1">
-        {slide.items.map((it, i) => (
-          <m.button
-            key={it.slug}
-            role="tab"
-            type="button"
-            aria-selected={i === sel}
-            tabIndex={i === sel ? 0 : -1}
-            onClick={() => choose(i)}
-            whileTap={{ scale: 0.94 }}
-            className={`relative shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition-colors ${i === sel ? "border-paper text-graphite" : "border-paper/30 bg-graphite/50 text-paper/85 hover:border-paper"}`}
-          >
-            {i === sel && <m.span layoutId={`theme-pill-${slide.key}`} className="absolute inset-0 rounded-full bg-paper" transition={{ type: "spring", stiffness: 420, damping: 32 }} />}
-            <span className="relative">{it.name}</span>
-          </m.button>
-        ))}
-      </m.div>
+      <div onKeyDown={onKey}>
+        <AnimatePresence mode="wait" initial={false}>
+          {sel === null || !t ? (
+            <m.div key="grid" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }}>
+              <DeepTag layer={slide.layer} />
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                <h2 className="font-display text-[clamp(1.5rem,4vw,2.2rem)] font-semibold tracking-tight">{slide.title}</h2>
+                <p className="kicker text-ash">{seen.size > 0 ? `${seen.size} de ${total} vistos` : `${total} temas · escolha um`}</p>
+              </div>
+              <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {slide.items.map((it, i) => (
+                  <m.li key={it.slug} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 * i }}>
+                    <m.button
+                      type="button"
+                      onClick={() => open(i)}
+                      whileTap={{ scale: 0.96 }}
+                      className="group relative flex h-full min-h-14 w-full items-center gap-2.5 border border-paper/15 bg-graphite/50 px-2.5 py-2 text-left transition-colors hover:border-[var(--accent-ink)] md:min-h-20 md:flex-col md:items-start md:gap-1 md:p-3"
+                    >
+                      <span className="shrink-0 text-[var(--accent-ink)] opacity-80 transition-opacity group-hover:opacity-100">
+                        <ThemeArt theme={it.slug} className="h-8 w-12 md:h-10 md:w-16" />
+                      </span>
+                      <span className="text-[0.82rem] leading-tight text-paper/90 md:text-sm">{it.name}</span>
+                      {seen.has(i) && (
+                        <span aria-label="visto" className="absolute right-1.5 top-1.5 text-[var(--accent-ink)]">
+                          <Check aria-hidden className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </m.button>
+                  </m.li>
+                ))}
+              </ul>
+            </m.div>
+          ) : (
+            <m.div key="detail" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }}>
+              {/* barra: voltar à grade · posição · anterior/próximo */}
+              <div className="flex items-center justify-between gap-3">
+                <button type="button" onClick={() => setSel(null)} className="inline-flex min-h-10 items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ash hover:text-paper">
+                  <LayoutGrid aria-hidden className="h-4 w-4" /> Todos os temas
+                </button>
+                <span className="flex items-center gap-1">
+                  <button type="button" onClick={() => step(-1)} aria-label="Tema anterior" className="grid h-10 w-10 place-items-center rounded-full text-paper/80 hover:bg-paper/10 hover:text-paper">
+                    <ChevronLeft aria-hidden className="h-5 w-5" />
+                  </button>
+                  <span className="min-w-[3.2rem] text-center font-mono text-xs text-ash">
+                    {sel + 1}/{total}
+                  </span>
+                  <button type="button" onClick={() => step(1)} aria-label="Próximo tema" className="grid h-10 w-10 place-items-center rounded-full text-paper/80 hover:bg-paper/10 hover:text-paper">
+                    <ChevronRight aria-hidden className="h-5 w-5" />
+                  </button>
+                </span>
+              </div>
 
-      <m.div variants={rise} role="tabpanel" className="mt-3" data-side={sideSlug} aria-live="polite">
-        <AnimatePresence mode="wait">
-          <m.div
-            key={`${t?.slug}-${other}`}
-            initial={{ opacity: 0, x: other ? 40 : 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: other ? -40 : -16 }}
-            transition={{ duration: 0.28 }}
-            className="border-l-4 border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent-deep)_40%,transparent)] p-4 md:p-6"
-          >
-            <p className="kicker text-[var(--accent-ink)]">{sideName} · {t?.name}</p>
-            {pos ? (
-              <>
-                <p className="mt-1.5 font-display text-[clamp(1.05rem,2.6vw,1.6rem)] leading-snug"><Gloss text={pos.summary} /></p>
-                <ul className="mt-3 space-y-1.5 md:grid md:grid-cols-3 md:gap-3 md:space-y-0">
-                  {pos.points.map((p, i) => (
-                    <m.li key={p} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.08 }} className="flex gap-2 text-[0.92rem] leading-snug text-paper/90">
-                      <span aria-hidden className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent-ink)]" />
-                      {p}
-                    </m.li>
-                  ))}
-                </ul>
-                <p className="mt-3 text-[0.8rem] leading-snug text-paper/65"><span className="kicker mr-1.5 text-ev-critique">Ressalva</span>{pos.nuances}</p>
-              </>
-            ) : (
-              <p className="mt-3 text-ash">Conteúdo deste tema em revisão editorial.</p>
-            )}
-          </m.div>
+              <AnimatePresence mode="wait" initial={false}>
+                <m.div
+                  key={t.slug}
+                  initial={{ opacity: 0, x: 40 * dir }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -40 * dir }}
+                  transition={{ duration: 0.28 }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.25}
+                  dragDirectionLock
+                  onDragEnd={(_, info) => {
+                    if (Math.abs(info.offset.x) > 70) step(info.offset.x < 0 ? 1 : -1);
+                  }}
+                  className="touch-pan-y"
+                >
+                  <div className="mt-1 flex items-center gap-3" data-side={other ? data.other.slug : data.side}>
+                    <span className="shrink-0 text-[var(--accent-ink)]">
+                      <ThemeArt key={`${t.slug}-${other}`} theme={t.slug} className="h-12 w-[4.5rem] md:h-16 md:w-24" />
+                    </span>
+                    <h3 className="font-display text-[clamp(1.35rem,3.4vw,2rem)] font-semibold leading-tight tracking-tight">{t.name}</h3>
+                  </div>
+
+                  {/* lado: este × outro, com a pílula deslizando */}
+                  {t.other && (
+                    <div role="tablist" aria-label="Lado" className="mt-3 inline-flex rounded-full border border-paper/25 p-1">
+                      {sides.map((s) => (
+                        <button
+                          key={String(s.key)}
+                          type="button"
+                          role="tab"
+                          aria-selected={other === s.key}
+                          data-side={s.slug}
+                          onClick={() => {
+                            haptic("tap");
+                            setOther(s.key);
+                            setNuance(false);
+                          }}
+                          className={`relative rounded-full px-4 py-1.5 font-mono text-[0.72rem] uppercase tracking-[0.08em] transition-colors ${other === s.key ? "text-paper" : "text-ash hover:text-paper"}`}
+                        >
+                          {other === s.key && <m.span layoutId={`${pillId}-side`} className="absolute inset-0 rounded-full bg-[var(--accent)]" transition={{ type: "spring", stiffness: 420, damping: 32 }} />}
+                          <span className="relative">{s.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <AnimatePresence mode="wait" initial={false}>
+                    <m.div
+                      key={String(other)}
+                      data-side={other ? data.other.slug : data.side}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.22 }}
+                      className="mt-3 border-l-4 border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent-deep)_40%,transparent)] p-4 md:p-5"
+                      aria-live="polite"
+                    >
+                      {pos ? (
+                        <>
+                          <p className="font-display text-[clamp(1.05rem,2.5vw,1.45rem)] leading-snug">
+                            <Gloss text={pos.summary} />
+                          </p>
+                          <ul className="mt-3 flex flex-wrap gap-1.5">
+                            {pos.points.map((p, i) => (
+                              <m.li
+                                key={p}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.15 + i * 0.1, type: "spring", stiffness: 320, damping: 22 }}
+                                className="inline-flex items-start gap-1.5 rounded-2xl border border-[color-mix(in_srgb,var(--accent)_50%,transparent)] bg-graphite/40 px-3 py-1.5 text-[0.85rem] leading-snug text-paper/90"
+                              >
+                                <Check aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-ink)]" strokeWidth={2.5} />
+                                {p}
+                              </m.li>
+                            ))}
+                          </ul>
+                          {pos.nuances && (
+                            <div className="mt-3">
+                              <button type="button" onClick={() => setNuance((v) => !v)} aria-expanded={nuance} className="inline-flex min-h-8 items-center gap-1 font-mono text-[0.68rem] uppercase tracking-[0.08em] text-ev-critique hover:underline">
+                                Ressalva <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${nuance ? "rotate-180" : ""}`} />
+                              </button>
+                              <AnimatePresence initial={false}>
+                                {nuance && (
+                                  <m.p initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden text-[0.82rem] leading-snug text-paper/70">
+                                    {pos.nuances}
+                                  </m.p>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-ash">Conteúdo deste tema em revisão editorial.</p>
+                      )}
+                    </m.div>
+                  </AnimatePresence>
+                </m.div>
+              </AnimatePresence>
+
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <span className="font-mono text-[0.68rem] uppercase tracking-[0.08em] text-ash">
+                  <span className="hidden md:inline">← → troca de tema</span>
+                  <span className="md:hidden">Arraste para o lado</span>
+                </span>
+                <Link href={slide.fullHref} className="inline-flex min-h-10 items-center font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ash underline underline-offset-4 hover:text-paper">
+                  Ver com fontes
+                </Link>
+              </div>
+            </m.div>
+          )}
         </AnimatePresence>
-      </m.div>
-
-      <m.div variants={rise} className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {t?.other && (
-          <button type="button" onClick={() => setOther((v) => !v)} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-paper/40 px-4 font-mono text-[0.72rem] uppercase tracking-[0.08em] text-paper hover:border-paper" data-side={other ? data.side : data.other.slug}>
-            <ArrowLeftRight aria-hidden className="h-4 w-4" /> {other ? `Voltar para a ${data.sideName.toLowerCase()}` : `E a ${data.other.name.toLowerCase()}?`}
-          </button>
-        )}
-        <Link href={slide.fullHref} className="inline-flex min-h-10 items-center font-mono text-[0.7rem] uppercase tracking-[0.08em] text-ash underline underline-offset-4 hover:text-paper">Ver com fontes</Link>
-      </m.div>
+      </div>
     </Stage>
   );
 }
+
 
 const CONFETTI = Array.from({ length: 16 }, (_, i) => {
   const a = (i / 16) * Math.PI * 2;

@@ -102,13 +102,19 @@ test.describe("experiência pública", () => {
     await page.goto("/explorar/esquerda#o-que-defende-3-themes");
     const slide = page.locator("section[data-active=true]");
     await expect(slide).toHaveAttribute("id", "o-que-defende-3-themes");
-    const tabs = slide.getByRole("tab");
-    await tabs.nth(1).click();
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
-    const name = (await tabs.nth(1).textContent())!.trim();
-    await expect(slide.getByRole("tabpanel")).toContainText(name);
-    await slide.getByRole("button", { name: /e a direita\?/i }).click();
-    await expect(slide.getByRole("tabpanel")).toContainText(/direita/i);
+    // todos os temas à vista (inclusive os do fim da lista), cada um abre seu cartão
+    const last = slide.getByRole("button", { name: /democracia e instituições/i });
+    await expect(last).toBeInViewport();
+    await last.click();
+    await expect(slide.getByRole("heading", { name: /democracia e instituições/i })).toBeVisible();
+    const card = slide.locator("[aria-live=polite]").filter({ has: page.locator("p.font-display") });
+    const mine = await card.innerText();
+    await slide.getByRole("tab", { name: "Direita" }).click();
+    await expect(slide.getByRole("tab", { name: "Direita" })).toHaveAttribute("aria-selected", "true");
+    await expect(card).not.toHaveText(mine);
+    // próximo tema sem voltar à grade (dá a volta no fim da lista)
+    await slide.getByRole("button", { name: "Próximo tema" }).click();
+    await expect(slide.getByRole("heading", { name: /papel do estado/i })).toBeVisible();
   });
 
   test("virar para o plano e voltar mantém o card visível", async ({ page }) => {
