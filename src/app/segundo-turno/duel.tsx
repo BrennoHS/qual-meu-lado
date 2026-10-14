@@ -52,6 +52,15 @@ export function Duel({ candidates }: { candidates: DuelCandidate[] }) {
     if (scroll) document.getElementById("duelo")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // Link direto para um tema (ex.: /segundo-turno?tema=saude, usado pela home).
+  useEffect(() => {
+    const tema = new URLSearchParams(window.location.search).get("tema");
+    const i = ROUNDS.findIndex((x) => x.slug === tema);
+    if (i <= 0) return;
+    setRound(i);
+    window.setTimeout(() => document.getElementById("duelo")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+  }, []);
+
   // ← → trocam de rodada (fora de campos de texto).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { getPerspectives, getSettings } from "@/lib/content/queries";
+import { getAffinityModel, getPerspectives, getSettings, interleaveStatements } from "@/lib/content/queries";
+import { QuickQuestion } from "@/components/affinity/quick-question";
+import { ProposalThemes } from "@/components/site/proposal-themes";
 import { SplitHero } from "@/components/hero/split-hero";
 import { JourneySteps } from "@/components/site/journey-steps";
 import { SiteHeader } from "@/components/site/site-header";
@@ -27,13 +29,18 @@ const PATHS = [
 const LABELS: EvidenceKind[] = ["fact", "pro", "critique", "interpretation", "proposal", "unconfirmed"];
 
 export default async function Home() {
-  const [{ hero }, perspectives, sourceCount, claimCount, election] = await Promise.all([
+  const [{ hero }, perspectives, sourceCount, claimCount, election, affinity] = await Promise.all([
     getSettings(),
     getPerspectives(),
     db.source.count({ where: { status: { in: PUBLIC_STATUSES }, isDemo: false } }),
     db.claim.count({ where: { status: { in: PUBLIC_STATUSES } } }),
     getCurrentElection(),
+    getAffinityModel(),
   ]);
+  // as primeiras afirmações do teste, na mesma ordem dele (para a pergunta rápida)
+  const quick = interleaveStatements(affinity.statements)
+    .slice(0, 6)
+    .map((s) => ({ key: s.key, text: s.text, dimensionKey: s.dimensionKey, dimensionName: s.dimensionName }));
   const finalists = election?.candidates ?? [];
   const left = perspectives.find((p) => p.side === "LEFT");
   const right = perspectives.find((p) => p.side === "RIGHT");
@@ -55,7 +62,8 @@ export default async function Home() {
             <p className="kicker">Como funciona</p>
             <h2 id="caminho-titulo" className="h-section mt-3">Seu caminho em 4 passos</h2>
             <p className="mt-3 max-w-2xl text-paper/75">
-              Comece por qualquer lado. O site lembra — só no seu navegador — o que você já viu e mostra o próximo passo.
+              Explore os dois lados com o mesmo peso — e, no fim, descubra com qual você se identifica mais. Comece por qualquer um: o site lembra (só no seu
+              navegador) o que você já viu e mostra o próximo passo.
             </p>
             <div className="mt-8">
               <JourneySteps />
@@ -63,9 +71,22 @@ export default async function Home() {
           </div>
         </section>
 
+        {quick.length > 0 && (
+          <section aria-labelledby="rapida" className="border-b border-line">
+            <div className="wrap py-14 md:py-20">
+              <p className="kicker">Experimente agora · 10 segundos</p>
+              <h2 id="rapida" className="h-section mt-3">Concorda ou discorda?</h2>
+              <div className="mt-8">
+                <QuickQuestion statements={quick} total={affinity.statements.length} />
+              </div>
+            </div>
+          </section>
+        )}
+
         {finalists.length >= 2 && (
           <section aria-labelledby="eleicao" className="border-b border-line bg-graphite-2">
-            <div className="wrap grid gap-10 py-14 md:grid-cols-[1.3fr_1fr] md:items-center md:py-20">
+            <div className="wrap py-14 md:py-20">
+            <div className="grid gap-10 md:grid-cols-[1.3fr_1fr] md:items-center">
               <div>
                 <p className="kicker text-ev-pro">Eleições 2026 · 2º turno em 25 de outubro</p>
                 <h2 id="eleicao" className="display mt-4 text-[clamp(2.2rem,6.5vw,5rem)]">
@@ -86,6 +107,12 @@ export default async function Home() {
                   <Congress />
                 </div>
               </div>
+            </div>
+            {/* os 8 temas como portas de entrada: um toque e a comparação abre naquele tema */}
+            <p className="kicker mt-12">Escolha um tema e compare</p>
+            <div className="mt-4">
+              <ProposalThemes />
+            </div>
             </div>
           </section>
         )}

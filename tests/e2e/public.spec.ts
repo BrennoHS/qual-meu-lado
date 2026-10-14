@@ -98,6 +98,23 @@ test.describe("experiência pública", () => {
     await expect(page.getByText(/o que diz o plano registrado no tse/i).first()).toBeVisible();
   });
 
+  test("home: a pergunta rápida grava a resposta como o teste e convida a continuar", async ({ page }) => {
+    await page.goto("/", { waitUntil: "networkidle" });
+    const quick = page.locator("section", { has: page.locator("#rapida") });
+    await quick.getByRole("button", { name: "Sim", exact: true }).click();
+    await expect(quick.getByText(/isso já conta para o seu indicador/i)).toBeVisible();
+    const stored = await page.evaluate(() => localStorage.getItem("doislados:journey:v1"));
+    expect(stored).toContain("agree");
+    await expect(quick.getByRole("link", { name: /continuar o teste/i })).toHaveAttribute("href", "/afinidades");
+  });
+
+  test("home: cada tema do 2º turno abre a comparação direto nele", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("section", { has: page.locator("#eleicao") }).getByRole("link", { name: /Saúde/ }).click();
+    await expect(page).toHaveURL(/\/segundo-turno\?tema=saude/, { timeout: 15_000 });
+    await expect(page.locator("#rodada-titulo")).toContainText(/filas/i);
+  });
+
   test("o reel acompanha a rolagem mesmo se o IntersectionObserver falhar (iPhone/Safari)", async ({ page }) => {
     // simula o Safari com inércia: o observador nunca avisa nada
     await page.addInitScript(() => {

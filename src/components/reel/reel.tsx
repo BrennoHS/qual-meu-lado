@@ -333,12 +333,12 @@ export const pop: Variants = {
 export function Kinetic({ text, active, className = "", delay = 0, step = 0.035, gloss = false }: { text: string; active: boolean; className?: string; delay?: number; step?: number; gloss?: boolean }) {
   const segs = gloss ? glossSegments(text, glossCtx(2)) : [{ text }];
   let wi = 0;
-  const word = (w: string, key: number) => {
+  const word = (w: string, key: number, inGloss = false) => {
     const i = wi++;
     return (
       <span key={key} aria-hidden={gloss ? undefined : true} className="inline-block overflow-hidden pb-[0.12em] align-bottom">
         <m.span
-          className="inline-block"
+          className={inGloss ? "gloss-word inline-block" : "inline-block"}
           initial={{ y: "105%", opacity: 0 }}
           animate={active ? { y: "0%", opacity: 1 } : { y: "105%", opacity: 0 }}
           transition={{ delay: active ? delay + i * step : 0, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
@@ -351,7 +351,8 @@ export function Kinetic({ text, active, className = "", delay = 0, step = 0.035,
   return (
     <span className={className} aria-label={gloss ? undefined : text}>
       {segs.map((seg, si) => {
-        const parts = seg.text.split(/(\s+)/).map((w, j) => (w === "" ? null : /^\s+$/.test(w) ? " " : word(w, j)));
+        const isGloss = "entry" in seg && !!seg.entry;
+        const parts = seg.text.split(/(\s+)/).map((w, j) => (w === "" ? null : /^\s+$/.test(w) ? " " : word(w, j, isGloss)));
         return "entry" in seg && seg.entry ? (
           <GlossTerm key={si} term={seg.entry.term} definition={seg.entry.definition}>
             {parts}

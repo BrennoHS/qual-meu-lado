@@ -280,6 +280,14 @@ body {
   cursor: help; border-radius: 2px;
 }
 .gloss:hover, .gloss[data-state="open"] { background: color-mix(in srgb, var(--accent) 30%, transparent); text-decoration-style: solid; }
+/* No texto animado cada palavra é um bloco próprio (para "crescer"), e o
+   sublinhado do pai não atravessa blocos: cada palavra leva o seu. */
+.gloss .gloss-word {
+  text-decoration: underline dotted; text-decoration-thickness: 2px; text-underline-offset: 0.22em;
+  text-decoration-color: color-mix(in srgb, var(--accent-ink) 80%, transparent);
+}
+.gloss:hover .gloss-word, .gloss[data-state="open"] .gloss-word { text-decoration-style: solid; }
+.gloss:has(.gloss-word) { text-decoration: none; }
 .gloss-pop { animation: gloss-in .22s var(--ease-out-soft); transform-origin: var(--radix-popover-content-transform-origin); }
 @keyframes gloss-in { from { opacity: 0; transform: translateY(4px) scale(.96); } }
 

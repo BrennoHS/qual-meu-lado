@@ -170,7 +170,7 @@ export const direita: PerspectiveSeed = {
         "Partidos costumam ser descritos como de direita, como PL, PP, Republicanos, União Brasil e Novo — mas as classificações variam.",
       ],
       blocks: [
-        { type: "lead", text: "A direita brasileira juntou o liberalismo econômico com coisas bem nossas: o conservadorismo das igrejas, o legado dos partidos da ditadura, o pragmatismo do centrão e, desde os anos 2010, uma nova direita que voltou a se dizer de direita sem medo do rótulo." },
+        { type: "lead", text: "A direita brasileira juntou o liberalismo econômico com coisas bem nossas: o conservadorismo das igrejas católicas e evangélicas, a força do agronegócio, o pragmatismo do centrão e, desde os anos 2010, uma nova direita que voltou a assumir o rótulo sem medo." },
         { type: "illustration", name: "congress", title: "Governar é negociar", caption: "Nenhum presidente eleito desde 1989 teve maioria própria no Congresso. Todos precisaram de alianças." },
         {
           type: "text",
