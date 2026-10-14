@@ -181,13 +181,8 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
     prevSegRef.current = seg;
   }, [seg]);
   // Progresso dentro de cada segmento.
-  const fill = segments.map((_, s) => {
-    const idx = segs.map((v, i) => (v === s ? i : -1)).filter((i) => i >= 0);
-    if (!idx.length) return 0;
-    if (active > idx[idx.length - 1]) return 1;
-    if (active < idx[0]) return 0;
-    return (active - idx[0] + 1) / idx.length;
-  });
+  // progresso de leitura contínuo (sem segmentos de "story", que sugerem tocar para passar)
+  const progress = keys.length ? (active + 1) / keys.length : 0;
 
   return (
     <Ctx.Provider value={{ next, prev, goToKey }}>
@@ -208,21 +203,18 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
           </AnimatePresence>
         </div>
 
-        {/* Barra superior: progresso segmentado + controles */}
+        {/* Barra superior: uma linha fina de progresso de leitura + controles */}
         <div className="absolute inset-x-0 top-0 z-30 bg-gradient-to-b from-graphite via-graphite/80 to-transparent pb-6">
-          <div className="mx-auto flex max-w-5xl gap-1 px-[var(--gutter)] pt-3" aria-hidden>
-            {segments.map((s, i) => (
-              <m.div
-                key={pulse?.i === i ? `${i}-${pulse.id}` : i}
-                className="h-[3px] flex-1 overflow-hidden rounded-full bg-paper/15"
-                title={s}
-                initial={pulse?.i === i ? { scaleY: 3.5, boxShadow: "0 0 14px rgba(245,243,238,0.9)" } : false}
-                animate={{ scaleY: 1, boxShadow: "0 0 0px rgba(245,243,238,0)" }}
-                transition={{ duration: 0.9, ease: "easeOut" }}
-              >
-                <m.div className="h-full origin-left bg-paper" animate={{ scaleX: fill[i] }} initial={false} transition={{ type: "spring", stiffness: 160, damping: 26 }} />
-              </m.div>
-            ))}
+          <div className="mx-auto max-w-5xl px-[var(--gutter)] pt-3" aria-hidden title={segments[seg]}>
+            <m.div
+              key={pulse ? pulse.id : 0}
+              className="h-[2px] overflow-hidden rounded-full bg-paper/15"
+              initial={pulse ? { boxShadow: "0 0 14px rgba(245,243,238,0.9)" } : false}
+              animate={{ boxShadow: "0 0 0px rgba(245,243,238,0)" }}
+              transition={{ duration: 0.9, ease: "easeOut" }}
+            >
+              <m.div className="h-full origin-left bg-paper" animate={{ scaleX: progress }} initial={false} transition={{ type: "spring", stiffness: 160, damping: 26 }} />
+            </m.div>
           </div>
           <div className="mx-auto mt-2 flex max-w-5xl items-center justify-between gap-2 px-[var(--gutter)]">
             <div className="flex min-w-0 items-center gap-3">{topLeft}</div>
@@ -254,7 +246,7 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
         </div>
 
         {/* Ouvir + tempo restante */}
-        <div className="absolute bottom-5 left-16 z-30 flex items-center gap-3">
+        <div className="absolute bottom-5 left-[var(--gutter)] z-30 flex items-center gap-3">
           {voice.supported && speech && (
             <button
               type="button"

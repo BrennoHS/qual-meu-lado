@@ -33,6 +33,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // sem o ícone "N" do Next no ambiente local: a tela de teste fica igual à publicada
+  devIndicators: false,
   reactStrictMode: true,
   experimental: {
     serverActions: { bodySizeLimit: "1mb" },

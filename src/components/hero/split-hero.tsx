@@ -258,7 +258,7 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
         {/* A linha que separa dois mundos */}
         <m.div
           aria-hidden
-          className="hero-divider pointer-events-none z-10 bg-paper"
+          className="hero-divider pointer-events-none z-10 bg-paper md:[mask-image:linear-gradient(to_bottom,#000_0,#000_10%,transparent_12%,transparent_40%,#000_44%,#000_100%)]"
           animate={chosen ? { opacity: [1, 1, 0], scale: [1, 1.6, 1] } : { opacity: 1 }}
           transition={{ duration: 0.7 }}
         >

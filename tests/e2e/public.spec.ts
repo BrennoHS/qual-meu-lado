@@ -196,8 +196,11 @@ test.describe("experiência pública", () => {
     const label = slide.locator("h2");
     await expect(label).toHaveText(/primeiro/i);
     await expect(slide.getByText(/toque para avançar/i)).toBeVisible();
-    await slide.locator(".rt").first().click();
-    await expect(label).toHaveText(/depois/i);
+    // o primeiro toque repete até a página terminar de carregar (antes disso o toque não é ouvido)
+    await expect(async () => {
+      if (/primeiro/i.test(await label.innerText())) await slide.locator(".rt").first().click();
+      await expect(label).toHaveText(/depois/i, { timeout: 1500 });
+    }).toPass({ timeout: 20_000 });
     await slide.locator(".rt").first().click();
     await expect(label).toHaveText(/século 20/i);
     await expect(slide.getByText(/role para continuar/i)).toBeVisible();
