@@ -1,5 +1,7 @@
 import "server-only";
-import type { Block } from "@/lib/content/blocks";
+import { blocksSchema, type Block } from "@/lib/content/blocks";
+import { db } from "@/lib/db";
+import { PUBLIC_STATUSES } from "@/lib/editorial/status";
 import { getChapterBundle, getCurrentElection, getPerspective, getThemes, type ChapterBundle } from "@/lib/content/queries";
 import { toProposalView } from "@/lib/content/candidates";
 import { ROUNDS } from "@/lib/election";
@@ -132,12 +134,44 @@ function blockSlides(block: Block, bundle: ChapterBundle, seg: number, base: str
 }
 
 /** O lado inteiro como um reel contínuo: 7 capítulos, uma ideia por tela. */
+/** Palavras de um texto, para reconhecer aberturas quase iguais nos dois lados. */
+const words = (t: string) => new Set(t.toLowerCase().match(/[\p{L}\d]+/gu) ?? []);
+function nearlySame(a: string, b: string): boolean {
+  const A = words(a);
+  const B = words(b);
+  let common = 0;
+  for (const w of A) if (B.has(w)) common++;
+  return common / Math.max(A.size, B.size, 1) >= 0.8;
+}
+
+/**
+ * Telas que se repetem no mesmo capítulo do outro lado (ex.: a história das
+ * cadeiras de 1789). Quem já passou por lá pula essas telas aqui. Blocos
+ * interativos (perguntas, temas, argumentos) nunca são pulados.
+ */
+const SKIPPABLE = new Set<Block["type"]>(["lead", "text", "illustration", "claims", "didYouKnow", "example"]);
+function isShared(b: Block, others: Block[]): boolean {
+  if (!SKIPPABLE.has(b.type)) return false;
+  const json = JSON.stringify(b);
+  return others.some((o) => JSON.stringify(o) === json || (b.type === "lead" && o.type === "lead" && nearlySame(b.text, o.text)));
+}
+
 async function buildSideReel(side: Side): Promise<SideReelData | null> {
   const perspective = await getPerspective(side);
   if (!perspective) return null;
   const bundles = (await Promise.all(perspective.chapters.map((c) => getChapterBundle(side, c.slug)))).filter((b): b is ChapterBundle => !!b);
   const otherSlug: Side = side === "esquerda" ? "direita" : "esquerda";
   const slides: SideSlide[] = [];
+  const otherChapters = await db.chapter.findMany({
+    where: { perspective: { slug: otherSlug }, status: { in: PUBLIC_STATUSES } },
+    select: { slug: true, blocks: true },
+  });
+  const otherBlocks = new Map(
+    otherChapters.map((c) => {
+      const parsed = blocksSchema.safeParse(c.blocks);
+      return [c.slug, parsed.success ? parsed.data : []] as const;
+    }),
+  );
 
   bundles.forEach((bundle, seg) => {
     const ch = bundle.chapter;
@@ -152,12 +186,18 @@ async function buildSideReel(side: Side): Promise<SideReelData | null> {
       title: ch.title,
       summary: ch.summary,
       keyPoints: ch.keyPoints,
+      sharedPoints: ch.keyPoints.flatMap((k, i) => (bundle.counterpart?.keyPoints.includes(k) ? [i] : [])),
       fullHref,
       counterpart: bundle.counterpart
         ? { sideSlug: bundle.counterpart.sideSlug, sideName: bundle.counterpart.sideName, title: bundle.counterpart.title, keyPoints: bundle.counterpart.keyPoints }
         : null,
     });
-    ch.blocks.forEach((b, i) => slides.push(...blockSlides(b, bundle, seg, `${ch.slug}-${i}`, fullHref)));
+    const others = otherBlocks.get(ch.slug) ?? [];
+    ch.blocks.forEach((b, i) => {
+      const made = blockSlides(b, bundle, seg, `${ch.slug}-${i}`, fullHref);
+      if (isShared(b, others)) for (const s of made) s.shared = true;
+      slides.push(...made);
+    });
     if (ch.deepDive) slides.push({ key: `${ch.slug}-deepdive`, seg, layer: "deep", kind: "text", title: "Para ir além", body: ch.deepDive });
     // Sem tela de "capítulo concluído": a troca de capítulo é sinalizada no próprio reel (leitura contínua).
   });
@@ -220,7 +260,7 @@ async function buildCandidateReel(slug: string): Promise<CandidateReelData | nul
  * Versões em cache (5 min, e invalidadas pela tag "content" quando o painel publica algo):
  * o reel junta muitos capítulos, e páginas com parâmetros de compartilhamento são dinâmicas.
  */
-export const getSideReel = (side: Side) => unstable_cache(() => buildSideReel(side), ["side-reel", side, "v4"], { revalidate: 300, tags: ["content"] })();
+export const getSideReel = (side: Side) => unstable_cache(() => buildSideReel(side), ["side-reel", side, "v5"], { revalidate: 300, tags: ["content"] })();
 export const getCandidateReel = (slug: string) => unstable_cache(() => buildCandidateReel(slug), ["candidate-reel", slug, "v4"], { revalidate: 300, tags: ["content"] })();
 
 /** Soma do tempo estimado da camada essencial. */

@@ -119,7 +119,96 @@ const ART: Record<string, React.ReactNode> = {
       <m.path d="M26 42 H44 l6 -12 l8 22 l6 -10 H94" {...S} strokeWidth={2} {...D(0.6)} />
     </>
   ),
+  // Trabalho e renda: maleta e relógio
+  trabalho: (
+    <>
+      <m.rect x={22} y={34} width={58} height={36} rx={4} {...S} {...D(0)} />
+      <m.path d="M42 34 V26 h18 v8 M22 48 H80" {...S} {...D(0.3)} />
+      <m.circle cx={94} cy={26} r={12} {...S} {...P(0.5)} />
+      <m.path d="M94 19 V26 l5 4" {...S} {...D(0.8)} />
+    </>
+  ),
+  // Fato com fonte: documento e uma lupa que confirma
+  fato: (
+    <>
+      <m.rect x={22} y={8} width={48} height={64} rx={3} {...S} {...D(0)} />
+      <m.path d="M30 22 H62 M30 32 H62 M30 42 H54 M30 52 H58" {...S} strokeOpacity={0.6} {...D(0.25)} />
+      <m.circle cx={80} cy={46} r={14} {...S} {...P(0.55)} />
+      <m.path d="M90 56 L104 70" {...S} strokeWidth={2.4} {...D(0.8)} />
+      <m.path d="M73 46 l5 5 l9 -10" {...S} strokeWidth={2} {...D(1)} />
+    </>
+  ),
+  // Glossário: balão de fala com "Aa"
+  glossario: (
+    <>
+      <m.path d="M22 12 H98 a8 8 0 0 1 8 8 V48 a8 8 0 0 1 -8 8 H52 L36 70 V56 H22 a8 8 0 0 1 -8 -8 V20 a8 8 0 0 1 8 -8 Z" {...S} {...D(0)} />
+      <m.text x={60} y={44} textAnchor="middle" fontSize={24} fontWeight={700} fill="currentColor" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+        Aa
+      </m.text>
+    </>
+  ),
+  // Balança: pende para um lado e para o outro, sem parar em nenhum
+  balanca: (
+    <>
+      <m.path d="M60 14 V64 M44 68 H76" {...S} {...D(0)} />
+      <m.g style={{ transformBox: "fill-box", transformOrigin: "center" }} animate={{ rotate: [0, -7, 7, -4, 0] }} transition={{ delay: 0.8, duration: 3.2, repeat: Infinity, repeatDelay: 1.2 }}>
+        <m.path d="M28 22 H92" {...S} {...D(0.3)} />
+        <m.path d="M28 22 l-9 18 h18 Z M92 22 l-9 18 h18 Z" {...S} {...D(0.5)} />
+      </m.g>
+    </>
+  ),
+  // Urna: um voto entra pela fenda
+  urna: (
+    <>
+      <m.rect x={28} y={36} width={64} height={36} rx={3} {...S} {...D(0)} />
+      <m.path d="M48 42 H72" {...S} strokeWidth={2.4} {...D(0.3)} />
+      <m.rect x={52} y={6} width={16} height={22} rx={1.5} {...S} initial={{ y: -14, opacity: 0 }} animate={{ y: [-14, 0, 20], opacity: [0, 1, 0] }} transition={{ delay: 0.6, duration: 1.8, repeat: Infinity, repeatDelay: 1.4 }} />
+    </>
+  ),
 };
+
+/** Assentos do plenário em semicírculo; `lado` acende a metade correspondente. */
+function Seats({ lado }: { lado: "esquerda" | "direita" }) {
+  const dots: { x: number; y: number; left: boolean; i: number }[] = [];
+  let i = 0;
+  for (const [r, n] of [[22, 7], [34, 10], [46, 13]] as const) {
+    for (let k = 0; k < n; k++) {
+      const a = Math.PI - (Math.PI * k) / (n - 1);
+      dots.push({ x: 60 + r * Math.cos(a), y: 70 - r * Math.sin(a), left: k < (n - 1) / 2, i: i++ });
+    }
+  }
+  return (
+    <>
+      {dots.map((d) => {
+        const lit = lado === "esquerda" ? d.left : d.x > 60.5;
+        return (
+          <m.circle
+            key={d.i}
+            cx={d.x}
+            cy={d.y}
+            r={3.2}
+            fill={lit ? (lado === "esquerda" ? "var(--color-esq-ink)" : "var(--color-dir-ink)") : "currentColor"}
+            fillOpacity={lit ? 1 : 0.25}
+            {...P(0.03 * d.i)}
+          />
+        );
+      })}
+      <m.path d="M48 72 H72" {...S} {...D(0.5)} />
+    </>
+  );
+}
+
+/** Vinheta avulsa (mesmo traço): para telas do reel e para a home. */
+export function Vignette({ name, className = "h-16 w-24" }: { name: string; className?: string }) {
+  if (name === "assentos-esquerda" || name === "assentos-direita") {
+    return (
+      <svg viewBox="0 0 120 80" className={className} aria-hidden>
+        <Seats lado={name === "assentos-esquerda" ? "esquerda" : "direita"} />
+      </svg>
+    );
+  }
+  return <DimensionArt dimension={name} className={className} />;
+}
 
 /** Tema (slug do conteúdo) → vinheta. */
 const THEME_ART: Record<string, string> = {
@@ -134,6 +223,7 @@ const THEME_ART: Record<string, string> = {
   "valores-e-costumes": "costumes",
   "meio-ambiente": "ambiente",
   "democracia-e-instituicoes": "instituicoes",
+  trabalho: "trabalho",
 };
 
 /** Vinheta de um tema (mesmo traço das dimensões do questionário). */

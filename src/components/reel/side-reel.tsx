@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Layers, LayoutGrid, Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowLeftRight, BookOpen, Check, ChevronDown, CopyCheck, ChevronLeft, ChevronRight, Layers, LayoutGrid, Pause, Play, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
@@ -14,7 +14,7 @@ import { SourceButton } from "@/components/evidence/source-panel";
 import { Glossary, Pulse } from "@/components/walkthrough/micro";
 import { Illustration, Scale } from "@/components/art/illustrations";
 import { ChapterArt } from "@/components/art/chapter-art";
-import { ThemeArt } from "@/components/art/dimension-art";
+import { ThemeArt, Vignette } from "@/components/art/dimension-art";
 import { TLink } from "@/components/transition/transition-provider";
 import { Kinetic, Reel, pop, rise, stage, useReel } from "./reel";
 import { DeepSwitch, ReelClose } from "./controls";
@@ -27,10 +27,21 @@ import { trackDepth } from "@/lib/metrics/client";
 
 type Props = { data: SideReelData; sponsor?: React.ReactNode };
 
+/** Capítulos que a pessoa já percorreu do outro lado (para não repetir o que é igual). */
+function useSeenOnOtherSide(data: SideReelData) {
+  const { visited } = useJourney();
+  return useMemo(() => new Set(visited.filter((v) => v.side === data.other.slug).map((v) => v.chapter)), [visited, data.other.slug]);
+}
+
 /** O lado inteiro como um reel contínuo. Sem menu de categorias: a pessoa é levada adiante. */
 export function SideReel({ data, sponsor }: Props) {
   const mode = useReadingMode();
-  const slides = useMemo(() => (mode === "aprofundado" ? data.slides : data.slides.filter((s) => s.layer === "surface")), [data.slides, mode]);
+  const seenOther = useSeenOnOtherSide(data);
+  const slides = useMemo(() => {
+    const byMode = mode === "aprofundado" ? data.slides : data.slides.filter((s) => s.layer === "surface");
+    // o que é igual ao mesmo capítulo do outro lado, e a pessoa já viu lá, não se repete aqui
+    return byMode.filter((s) => !(s.shared && seenOther.has(data.chapters[s.seg]?.slug ?? "")));
+  }, [data.slides, data.chapters, mode, seenOther]);
   const keys = useMemo(() => slides.map((s) => s.key), [slides]);
   const segs = useMemo(() => slides.map((s) => s.seg), [slides]);
   const [startKey, setStartKey] = useState<string | null>(null);
@@ -232,6 +243,7 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
       return (
         <Stage active={active}>
           <DeepTag layer={slide.layer} />
+          <div className="mb-2 h-12 w-[4.5rem] text-[var(--accent-ink)]">{active && <Vignette name="glossario" className="h-12 w-[4.5rem]" />}</div>
           <m.div variants={rise}>
             <Glossary title={slide.title ?? "Palavras que vão aparecer"} items={slide.items} />
           </m.div>
@@ -241,9 +253,12 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
       return (
         <Stage active={active} className="max-w-3xl">
           <DeepTag layer={slide.layer} />
-          <m.span variants={pop} className="inline-block -rotate-3 border-2 border-ev-fact px-3 py-1 font-mono text-sm font-bold uppercase tracking-[0.2em] text-ev-fact">
-            Fato com fonte
-          </m.span>
+          <div className="flex items-center gap-4">
+            <m.span variants={pop} className="inline-block -rotate-3 border-2 border-ev-fact px-3 py-1 font-mono text-sm font-bold uppercase tracking-[0.2em] text-ev-fact">
+              Fato com fonte
+            </m.span>
+            <span className="h-12 w-[4.5rem] text-ev-fact">{active && <Vignette name="fato" className="h-12 w-[4.5rem]" />}</span>
+          </div>
           {slide.title && <m.p variants={rise} className="kicker mt-6">{slide.title}</m.p>}
           <m.p variants={rise} className="mt-4 font-display text-[clamp(1.5rem,4vw,2.6rem)] leading-tight tracking-tight">
             <Gloss text={slide.claim?.text ?? "Informação em verificação editorial."} />
@@ -341,6 +356,10 @@ function CoverSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind:
     if (!active) setFlip(false);
   }, [active]);
   const cp = slide.counterpart;
+  const seenOther = useSeenOnOtherSide(data);
+  const chapterSlug = data.chapters[slide.seg]?.slug ?? "";
+  const skipping = seenOther.has(chapterSlug) && (!!slide.sharedPoints?.length || data.slides.some((s) => s.seg === slide.seg && s.shared));
+  const points = skipping ? slide.keyPoints.filter((_, i) => !slide.sharedPoints?.includes(i)) : slide.keyPoints;
   return (
     <div className="[perspective:1400px]">
       <AnimatePresence mode="wait" initial={false}>
@@ -379,7 +398,13 @@ function CoverSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind:
               </div>
 
               {/* 3 ideias-chave, uma de cada vez (como um story) */}
-              <KeyPointsStory points={slide.keyPoints} active={active} />
+              {points.length > 0 && <KeyPointsStory points={points} active={active} />}
+              {skipping && (
+                <m.p variants={rise} className="mt-4 flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.08em] text-ash">
+                  <CopyCheck aria-hidden className="h-4 w-4 shrink-0 text-[var(--accent-ink)]" />
+                  Pulamos o que é igual ao que você já viu na {data.other.name.toLowerCase()}
+                </m.p>
+              )}
 
               {/* atalhos discretos — seguir é só deslizar */}
               <m.div variants={rise} className="mt-4 flex items-center justify-end gap-3">

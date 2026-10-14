@@ -1,11 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useInView } from "motion/react";
 import * as m from "motion/react-m";
 import { ArrowRight, Check, RotateCcw } from "lucide-react";
 import { useJourney } from "@/lib/journey/store";
 import { readProgress } from "@/lib/reel/progress";
+import { Vignette } from "@/components/art/dimension-art";
+
+/** Vinheta de cada passo, desenhada quando o cartão aparece na tela. */
+const STEP_ART: Record<number, string> = { 1: "assentos-esquerda", 2: "assentos-direita", 3: "balanca", 4: "urna" };
+function StepArt({ n }: { n: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const seen = useInView(ref, { once: true, margin: "-10% 0px" });
+  return (
+    <span ref={ref} aria-hidden className="ml-auto h-10 w-[3.75rem] text-paper/70">
+      {seen && <Vignette name={STEP_ART[n]} className="h-10 w-[3.75rem]" />}
+    </span>
+  );
+}
 
 /**
  * O caminho do site em 4 passos — para ninguém se perder.
@@ -73,6 +87,7 @@ export function JourneySteps({ compact = false, onNavigate }: { compact?: boolea
                 </span>
                 {!compact && isNext && <span className="kicker text-paper">Próximo passo</span>}
                 {!compact && s.done && <span className="kicker text-ash">Feito</span>}
+                {!compact && <StepArt n={s.n} />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className={`block font-display tracking-tight ${compact ? "text-base" : "mt-1 text-xl"} ${s.done ? "text-paper/70" : "text-paper"}`}>

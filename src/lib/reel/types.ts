@@ -12,7 +12,8 @@ import type { Round } from "@/lib/election";
 export type IllustrationName = "hemicycle" | "congress" | "ballot" | "scale" | "crossroads" | "ladder" | "market" | "taxes" | "paycheck" | "powers" | "dialogue";
 
 /** secs: tempo estimado da tela (leitura + interação), calculado no servidor. */
-type Base = { key: string; seg: number; layer: "surface" | "deep"; secs?: number };
+/** shared: igual (ou quase) no mesmo capítulo do outro lado — quem já viu lá pula aqui. */
+type Base = { key: string; seg: number; layer: "surface" | "deep"; secs?: number; shared?: boolean };
 
 export type SideSlide = Base &
   (
@@ -23,6 +24,8 @@ export type SideSlide = Base &
         title: string;
         summary: string;
         keyPoints: string[];
+        /** índices dos pontos-chave idênticos aos do outro lado */
+        sharedPoints?: number[];
         fullHref: string;
         counterpart: { sideSlug: string; sideName: string; title: string; keyPoints: string[] } | null;
       }

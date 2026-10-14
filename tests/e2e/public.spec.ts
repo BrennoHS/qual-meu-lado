@@ -98,6 +98,20 @@ test.describe("experiência pública", () => {
     await expect(page.getByText(/o que diz o plano registrado no tse/i).first()).toBeVisible();
   });
 
+  test("quem já viu um lado não revê, no outro, as telas iguais (ex.: as cadeiras de 1789)", async ({ page }) => {
+    await page.goto("/explorar/direita");
+    await expect(page.locator("#origens-0-lead")).toHaveCount(1);
+    await page.evaluate(() =>
+      localStorage.setItem("doislados:journey:v1", JSON.stringify({ answers: {}, visited: [{ side: "esquerda", chapter: "origens", at: 1 }] })),
+    );
+    await page.reload();
+    await expect(page.locator("#origens-cover")).toHaveCount(1);
+    await expect(page.locator("#origens-0-lead")).toHaveCount(0);
+    await expect(page.locator("#origens-1-ill")).toHaveCount(0);
+    await expect(page.locator("#origens-3-text")).toHaveCount(1); // o que é próprio da direita continua
+    await expect(page.getByText(/pulamos o que é igual/i).first()).toBeVisible();
+  });
+
   test("no reel, cada tema responde ao toque e mostra o outro lado", async ({ page }) => {
     await page.goto("/explorar/esquerda#o-que-defende-3-themes");
     const slide = page.locator("section[data-active=true]");

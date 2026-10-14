@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Columns2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useState } from "react";
 import { AnimatePresence, useReducedMotion, useSpring } from "motion/react";
@@ -192,7 +193,7 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
                 {props ? (isLeft ? "← Ver propostas" : "Ver propostas →") : isLeft ? "← Explorar" : "Explorar →"}
               </m.span>
               <m.span
-                className={`display block ${props ? "text-[clamp(2.3rem,10vw,6.4rem)] md:text-[clamp(2.4rem,5.4vw,6.4rem)]" : "text-[clamp(3.2rem,15vw,10rem)] md:text-[clamp(3.6rem,8.6vw,10rem)]"} ${isLeft ? "origin-bottom-left" : "origin-bottom-right"}`}
+                className={`display block ${props ? "text-[clamp(2.3rem,10vw,6.4rem)] md:text-[clamp(2.4rem,min(5.4vw,10.8vh),6.4rem)]" : "text-[clamp(3.2rem,15vw,10rem)] md:text-[clamp(3.6rem,min(8.6vw,16.9vh),10rem)]"} ${isLeft ? "origin-bottom-left" : "origin-bottom-right"}`}
                 animate={chosen ? { y: chosen === which && wide ? -24 : 0, scale: chosen === which ? (wide ? 1.14 : 1.06) : 0.9, opacity: chosen === which ? 1 : 0 } : { y: hover === which ? -8 : 0, scale: hover === which ? 1.02 : 1, opacity: 1 }}
                 transition={chosen && chosen !== which ? { duration: 0.15 } : { type: "spring", stiffness: 200, damping: 20, delay: chosen ? 0.12 : 0 }}
               >
@@ -237,7 +238,7 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
       <m.div animate={fade} className="relative z-20 px-[var(--gutter)] pb-4 pt-[4.5rem] text-center md:pointer-events-none md:absolute md:inset-x-0 md:top-[12vh] md:pt-0">
         <AnimatePresence mode="wait" initial={false}>
           <m.div key={props ? "p" : "i"} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.35 }}>
-            <h1 id="hero-question" className="display mx-auto max-w-5xl text-[clamp(2.1rem,8.6vw,6.4rem)] drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]">
+            <h1 id="hero-question" className="display mx-auto max-w-5xl md:max-w-[10em] text-[clamp(2.1rem,8.6vw,6.4rem)] md:text-[clamp(2.1rem,min(8.6vw,10.8vh),6.4rem)] drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]">
               {heading.q}
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base text-paper/80 md:text-lg">{heading.s}</p>
@@ -270,7 +271,7 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
             {props ? (
               <m.span key="cmp" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}>
                 <Link href="/segundo-turno" className="btn btn-solid whitespace-nowrap shadow-[0_8px_40px_rgba(0,0,0,0.5)]" onMouseEnter={() => setHover(null)}>
-                  <span aria-hidden className="font-mono">VS</span> Comparar lado a lado
+                  <Columns2 aria-hidden className="h-4 w-4" /> Comparar lado a lado
                 </Link>
               </m.span>
             ) : (

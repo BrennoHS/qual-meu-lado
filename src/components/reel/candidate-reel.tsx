@@ -11,6 +11,7 @@ import { CANDIDATE_PHOTOS, ROUNDS } from "@/lib/election";
 import { useReadingMode } from "@/lib/journey/mode";
 import { proposalStatusLabel } from "@/lib/labels";
 import { ThemeIcon } from "@/components/art/icons";
+import { ThemeArt } from "@/components/art/dimension-art";
 import { Gloss } from "@/lib/glossary";
 import { TLink } from "@/components/transition/transition-provider";
 import { Kinetic, Reel, pop, rise, stage, useReel } from "./reel";
@@ -204,9 +205,9 @@ function ProposalSlide({ slide, active, data }: { slide: Extract<CandidateSlide,
   return (
     <Stage active={active}>
       <m.div variants={rise} className="flex items-center gap-3">
-        <m.span variants={pop} className="grid h-12 w-12 place-items-center rounded-full border border-paper/40 bg-graphite/70">
-          <ThemeIcon name={round.icon} className="h-6 w-6" />
-        </m.span>
+        <span className="grid h-12 w-[4.5rem] shrink-0 place-items-center text-paper/85">
+          {active ? <ThemeArt key={round.slug} theme={round.slug} className="h-12 w-[4.5rem]" /> : <ThemeIcon name={round.icon} className="h-6 w-6" />}
+        </span>
         <p className="kicker">Rodada {idx + 1} de {ROUNDS.length} · {round.label}</p>
       </m.div>
       <h2 className="mt-3 font-display text-[clamp(1.4rem,5vw,3.2rem)] font-semibold leading-[1.08] tracking-tight">

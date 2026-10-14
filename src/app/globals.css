@@ -67,6 +67,12 @@ html {
   scroll-padding-top: 72px;
 }
 
+/* Notebooks (tela larga e baixa, ex.: 1366×768): tudo ~10% menor, como o zoom
+   de 90% que a pessoa daria. Monitores Full HD (área útil ~950 px) não mudam. */
+@media (min-width: 1024px) and (max-height: 800px) {
+  html { font-size: 90%; }
+}
+
 body {
   background: var(--color-graphite);
   color: var(--color-paper);
