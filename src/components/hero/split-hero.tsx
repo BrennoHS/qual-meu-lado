@@ -53,6 +53,15 @@ function Universe({ tone, neutral }: { tone: Which; neutral: boolean }) {
 }
 
 
+/** Seta que dá um empurrãozinho para o lado, convidando ao toque. */
+function Nudge({ dir }: { dir: 1 | -1 }) {
+  return (
+    <m.span aria-hidden className="inline-block" animate={{ x: [0, dir * 5, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}>
+      {dir === 1 ? "→" : "←"}
+    </m.span>
+  );
+}
+
 export function SplitHero({ question, subtitle, left, right, candidates }: Props) {
   const router = useRouter();
   const { go } = useTransitionNav();
@@ -78,10 +87,36 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
     candidates.forEach((c) => router.prefetch(`/segundo-turno/${c.slug}`));
   }, [router, left.href, right.href, candidates]);
 
+  // Celular (sem mouse): os lados se revezam "acesos" sozinhos, como o hover faz no
+  // computador — a divisão respira, o brilho e o nome de cada lado se destacam.
+  // Para no primeiro toque da pessoa (ou se ela pediu menos movimento).
+  const [idle, setIdle] = useState(true);
   useEffect(() => {
-    const target = chosen === "left" ? 100 : chosen === "right" ? 0 : hover === "left" ? 56 : hover === "right" ? 44 : 50;
+    if (canHover || reduce || !idle || chosen) return;
+    const seq: (Which | null)[] = ["left", null, "right", null];
+    let k = 0;
+    const tick = () => {
+      setHover(seq[k % seq.length]);
+      k++;
+    };
+    const first = window.setTimeout(tick, 1400);
+    const id = window.setInterval(tick, 1700);
+    const stop = () => {
+      setIdle(false);
+      setHover(null);
+    };
+    window.addEventListener("touchstart", stop, { once: true, passive: true });
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(id);
+      window.removeEventListener("touchstart", stop);
+    };
+  }, [canHover, reduce, idle, chosen]);
+
+  useEffect(() => {
+    const target = chosen === "left" ? 100 : chosen === "right" ? 0 : hover === "left" ? (wide ? 56 : 52) : hover === "right" ? (wide ? 44 : 48) : 50; // no celular, menos: o botão do meio não pode cobrir o texto
     split.set(target);
-  }, [hover, chosen, split]);
+  }, [hover, chosen, split, wide]);
 
   function toggle(next: Mode) {
     setMode(next);
@@ -190,7 +225,7 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
             >
               {/* Ao escolher, rótulo e linha de apoio saem antes de o nome crescer (nada se sobrepõe). */}
               <m.span className="kicker mb-3 text-paper/70" animate={{ opacity: chosen ? 0 : 1, y: chosen ? -8 : 0 }} transition={{ duration: 0.18 }}>
-                {props ? (isLeft ? "← Ver propostas" : "Ver propostas →") : isLeft ? "← Explorar" : "Explorar →"}
+                {isLeft && <Nudge dir={-1} />} {props ? "Ver propostas" : "Explorar"} {!isLeft && <Nudge dir={1} />}
               </m.span>
               <m.span
                 className={`display block ${props ? "text-[clamp(2.3rem,10vw,6.4rem)] md:text-[clamp(2.4rem,min(5.4vw,10.8vh),6.4rem)]" : "text-[clamp(3.2rem,15vw,10rem)] md:text-[clamp(3.6rem,min(8.6vw,16.9vh),10rem)]"} ${isLeft ? "origin-bottom-left" : "origin-bottom-right"}`}
@@ -235,7 +270,7 @@ export function SplitHero({ question, subtitle, left, right, candidates }: Props
       className="grain relative flex h-svh min-h-[600px] flex-col overflow-hidden bg-graphite"
     >
       {/* Pergunta central: no celular fica numa faixa neutra; no desktop atravessa a divisão. */}
-      <m.div animate={fade} className="relative z-20 px-[var(--gutter)] pb-4 pt-[4.5rem] text-center md:pointer-events-none md:absolute md:inset-x-0 md:top-[12vh] md:pt-0">
+      <m.div animate={fade} className="hero-band relative z-20 px-[var(--gutter)] pb-4 pt-[4.5rem] text-center md:pointer-events-none md:absolute md:inset-x-0 md:top-[12vh] md:pt-0">
         <AnimatePresence mode="wait" initial={false}>
           <m.div key={props ? "p" : "i"} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.35 }}>
             <h1 id="hero-question" className="display mx-auto max-w-5xl md:max-w-[10em] text-[clamp(2.1rem,8.6vw,6.4rem)] md:text-[clamp(2.1rem,min(8.6vw,10.8vh),6.4rem)] drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]">

@@ -16,6 +16,7 @@ import { Counterpoints } from "./counterpoints";
 import { DeepLayer } from "./layered";
 import { ExampleCard, Glossary, Pulse } from "./micro";
 import { Illustration } from "@/components/art/illustrations";
+import { PlayInView } from "@/components/art/play-in-view";
 
 function SectionHead({ title, intro }: { title?: string; intro?: string }) {
   if (!title && !intro) return null;
@@ -159,7 +160,9 @@ function BlockInner({ block, bundle }: { block: Block; bundle: ChapterBundle }) 
         <Reveal>
           <figure className="mx-auto max-w-3xl">
             {block.title && <p className="kicker mb-4 text-center">{block.title}</p>}
-            <Illustration name={block.name} />
+            <PlayInView>
+              <Illustration name={block.name} />
+            </PlayInView>
             {block.caption && <figcaption className="mx-auto mt-4 max-w-xl text-center text-sm text-ash">{block.caption}</figcaption>}
           </figure>
         </Reveal>

@@ -141,6 +141,31 @@ test.describe("experiência pública", () => {
     await expect(active).toHaveAttribute("id", "origens-cover"); // voltou: a capa ativa de novo (e reanima)
   });
 
+  test("ilustrações do reel aparecem mesmo se o IntersectionObserver falhar (iPhone/Safari)", async ({ page }) => {
+    await page.addInitScript(() => {
+      class Mute {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+        takeRecords() {
+          return [];
+        }
+      }
+      (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = Mute;
+    });
+    // as cadeiras de 1789 (bolinhas) e a feira (moeda indo e voltando)
+    for (const hash of ["origens-1-ill", "o-que-defende-2-ill"]) {
+      const side = hash.startsWith("origens") ? "esquerda" : "direita";
+      await page.goto(`/explorar/${side}#${hash}`, { waitUntil: "networkidle" });
+      const svg = page.locator(`#${hash} svg`).first();
+      await expect(svg).toBeVisible();
+      // o desenho termina de entrar: o primeiro traço/bolinha chega a opacidade 1
+      await expect
+        .poll(async () => svg.locator("circle, path, rect").first().evaluate((el) => Number(getComputedStyle(el).opacity)), { timeout: 8000 })
+        .toBeGreaterThan(0.9);
+    }
+  });
+
   test("o reel não desliza para os lados no celular", async ({ page, isMobile }) => {
     test.skip(!isMobile, "só no celular");
     await page.goto("/explorar/esquerda");

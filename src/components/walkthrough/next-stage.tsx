@@ -6,6 +6,7 @@ import * as m from "motion/react-m";
 import { TLink, type Tone } from "@/components/transition/transition-provider";
 import { useJourney } from "@/lib/journey/store";
 import { Crossroads } from "@/components/art/illustrations";
+import { PlayInView } from "@/components/art/play-in-view";
 
 /** Final do capítulo: um "palco" grande que empurra para o próximo passo. */
 export function NextStage({ side, next }: { side: "esquerda" | "direita"; next: { href: string; number: number; kicker: string; title: string } }) {
@@ -51,7 +52,9 @@ export function JourneyEnd({ side }: { side: "esquerda" | "direita" }) {
     <section aria-labelledby="fim" className="border-t border-line">
       <div className="wrap grid gap-10 py-16 md:grid-cols-[1fr_1.1fr] md:items-center md:py-24">
         <div className="max-w-md">
-          <Crossroads />
+          <PlayInView>
+            <Crossroads />
+          </PlayInView>
         </div>
         <div>
           <p className="kicker">Você chegou ao fim da {side}</p>

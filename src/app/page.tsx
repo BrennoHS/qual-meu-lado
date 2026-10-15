@@ -16,6 +16,7 @@ import { PUBLIC_STATUSES } from "@/lib/editorial/status";
 import { getCurrentElection } from "@/lib/content/queries";
 import { Countdown } from "./segundo-turno/countdown";
 import { Congress } from "@/components/art/illustrations";
+import { PlayInView } from "@/components/art/play-in-view";
 import { orderForHome } from "@/lib/election";
 import type { EvidenceKind } from "@/lib/labels";
 
@@ -111,7 +112,9 @@ export default async function Home() {
               <div className="space-y-8">
                 <Countdown />
                 <div className="hidden opacity-80 md:block">
-                  <Congress />
+                  <PlayInView>
+                    <Congress />
+                  </PlayInView>
                 </div>
               </div>
             </div>

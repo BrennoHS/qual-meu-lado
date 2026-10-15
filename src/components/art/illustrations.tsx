@@ -11,8 +11,7 @@ import { Dialogue, Ladder, Market, Paycheck, Powers, Taxes } from "./chapter-ill
 
 const draw = (delay = 0) => ({
   initial: { pathLength: 0, opacity: 0 },
-  whileInView: { pathLength: 1, opacity: 1 },
-  viewport: { once: true, margin: "-10%" },
+  animate: { pathLength: 1, opacity: 1 },
   transition: { duration: 1.4, delay, ease: [0.22, 1, 0.36, 1] as const },
 });
 
@@ -50,8 +49,8 @@ export function Hemicycle() {
           r={5.2}
           fill={s.side === "esq" ? "var(--color-esq)" : s.side === "dir" ? "var(--color-dir)" : "var(--color-ash)"}
           initial={{ opacity: 0, scale: 0 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, margin: "-10%" }}
+          animate={{ opacity: 1, scale: 1 }}
+         
           transition={{ delay: 0.15 + s.d * 0.9, type: "spring", stiffness: 260, damping: 16 }}
           style={{ transformBox: "fill-box", transformOrigin: "center" }}
         />
@@ -127,7 +126,7 @@ export function Crossroads() {
       <m.path d="M200 210 L200 130" stroke="var(--color-paper)" strokeWidth={2} fill="none" {...draw(0)} />
       <m.path d="M200 130 C 200 90, 120 80, 70 30" stroke="var(--color-esq-ink)" strokeWidth={2} fill="none" {...draw(0.4)} />
       <m.path d="M200 130 C 200 90, 280 80, 330 30" stroke="var(--color-dir-ink)" strokeWidth={2} fill="none" {...draw(0.4)} />
-      <m.circle cx={200} cy={130} r={6} fill="var(--color-paper)" initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }} transition={{ delay: 0.3, type: "spring" }} style={{ transformBox: "fill-box", transformOrigin: "center" }} />
+      <m.circle cx={200} cy={130} r={6} fill="var(--color-paper)" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.3, type: "spring" }} style={{ transformBox: "fill-box", transformOrigin: "center" }} />
     </svg>
   );
 }
@@ -159,7 +158,7 @@ export function Illustration({ name }: { name: IllustrationKey }) {
     default:
       // Balança grande: oscila e se equilibra (capítulo das críticas).
       return (
-        <m.div className="mx-auto w-fit" initial={{ rotate: -6 }} whileInView={{ rotate: [-6, 5, -3, 1, 0] }} viewport={{ once: true }} transition={{ duration: 2.2, delay: 0.3 }}>
+        <m.div className="mx-auto w-fit" initial={{ rotate: -6 }} animate={{ rotate: [-6, 5, -3, 1, 0] }} transition={{ duration: 2.2, delay: 0.3 }}>
           <Scale className="mx-auto h-40 w-48 text-paper" />
         </m.div>
       );

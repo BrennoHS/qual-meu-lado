@@ -209,6 +209,14 @@ body {
    --split (0–100) vem de um motion value. A orientação é decidida só por
    CSS: empilhado no celular, lado a lado a partir de 768px. */
 .hero-clip-left, .hero-clip-right { position: absolute; inset: 0; }
+/* Celular: a faixa do título também tem as cores dos dois lados (no PC ela fica sobre a divisão). */
+@media (max-width: 767px) {
+  .hero-band {
+    background:
+      radial-gradient(70% 90% at 0% 0%, color-mix(in srgb, var(--color-esq-deep) 75%, transparent), transparent 70%),
+      radial-gradient(70% 90% at 100% 0%, color-mix(in srgb, var(--color-dir-deep) 75%, transparent), transparent 70%);
+  }
+}
 .hero-clip-left { clip-path: inset(0 0 calc((100 - var(--split, 50)) * 1%) 0); }
 .hero-clip-right { clip-path: inset(calc(var(--split, 50) * 1%) 0 0 0); }
 .hero-divider { position: absolute; left: 0; right: 0; height: 2px; top: calc(var(--split, 50) * 1%); translate: 0 -1px; }

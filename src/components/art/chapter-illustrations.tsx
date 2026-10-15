@@ -11,15 +11,13 @@ import * as m from "motion/react-m";
 
 const draw = (delay = 0) => ({
   initial: { pathLength: 0, opacity: 0 },
-  whileInView: { pathLength: 1, opacity: 1 },
-  viewport: { once: true, margin: "-10%" },
+  animate: { pathLength: 1, opacity: 1 },
   transition: { duration: 1.3, delay, ease: [0.22, 1, 0.36, 1] as const },
 });
 
 const pop = (delay = 0) => ({
   initial: { scale: 0, opacity: 0 },
-  whileInView: { scale: 1, opacity: 1 },
-  viewport: { once: true, margin: "-10%" },
+  animate: { scale: 1, opacity: 1 },
   transition: { delay, type: "spring" as const, stiffness: 260, damping: 16 },
   style: { transformBox: "fill-box" as const, transformOrigin: "center" },
 });
@@ -71,10 +69,10 @@ export function Market() {
       {stall(30, 0.1)}
       {stall(260, 0.25)}
       {/* a moeda vai, a caixa volta */}
-      <m.circle cx={160} cy={118} r={8} fill="none" stroke="var(--color-dir-ink)" strokeWidth={2} initial={{ x: 0, opacity: 0 }} whileInView={{ x: [0, 80, 80], opacity: [0, 1, 0] }} transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 0.4, delay: 1.2 }} />
-      <m.rect x={226} y={128} width={16} height={14} fill="none" stroke="var(--color-paper)" strokeWidth={2} initial={{ x: 0, opacity: 0 }} whileInView={{ x: [0, -80, -80], opacity: [0, 1, 0] }} transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 0.4, delay: 1.6 }} />
+      <m.circle cx={160} cy={118} r={8} fill="none" stroke="var(--color-dir-ink)" strokeWidth={2} initial={{ x: 0, opacity: 0 }} animate={{ x: [0, 80, 80], opacity: [0, 1, 0] }} transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 0.4, delay: 1.2 }} />
+      <m.rect x={226} y={128} width={16} height={14} fill="none" stroke="var(--color-paper)" strokeWidth={2} initial={{ x: 0, opacity: 0 }} animate={{ x: [0, -80, -80], opacity: [0, 1, 0] }} transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 0.4, delay: 1.6 }} />
       {/* etiqueta de preço */}
-      <m.g initial={{ y: 0, opacity: 0 }} whileInView={{ y: [0, -8, 4, 0], opacity: 1 }} transition={{ duration: 2.6, repeat: Infinity, delay: 1 }}>
+      <m.g initial={{ y: 0, opacity: 0 }} animate={{ y: [0, -8, 4, 0], opacity: 1 }} transition={{ duration: 2.6, repeat: Infinity, delay: 1 }}>
         <path d="M182 30 h36 l10 10 l-10 10 h-36 z" fill="none" stroke="var(--color-paper)" strokeWidth={1.5} />
         <text x={200} y={44} textAnchor="middle" {...LABEL} fill="var(--color-paper)">R$ ↕</text>
       </m.g>
@@ -113,7 +111,7 @@ export function Taxes() {
         </g>
       ))}
       {/* uma moedinha percorre o caminho */}
-      <m.circle cx={52} cy={110} r={4} fill="var(--color-esq-ink)" initial={{ x: 0, opacity: 0 }} whileInView={{ x: [0, 143, 260], opacity: [0, 1, 0] }} transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 0.6, delay: 2 }} />
+      <m.circle cx={52} cy={110} r={4} fill="var(--color-esq-ink)" initial={{ x: 0, opacity: 0 }} animate={{ x: [0, 143, 260], opacity: [0, 1, 0] }} transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 0.6, delay: 2 }} />
     </svg>
   );
 }
@@ -126,8 +124,8 @@ export function Paycheck() {
       <Person x={44} y={120} color="var(--color-dir-ink)" delay={0.1} />
       <text x={84} y={58} {...LABEL} fill="var(--color-ash)">SEU SALÁRIO</text>
       <m.rect x={84} y={66} width={290} height={34} rx={4} fill="none" stroke="var(--color-paper)" strokeWidth={1.6} {...draw(0.2)} />
-      <m.rect x={86} y={68} width={200} height={30} rx={3} fill="var(--color-dir-ink)" fillOpacity={0.85} initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }} transition={{ delay: 0.8, duration: 1, ease: [0.22, 1, 0.36, 1] }} style={{ transformBox: "fill-box", transformOrigin: "left center" }} />
-      <m.rect x={288} y={68} width={84} height={30} rx={3} fill="var(--color-ash)" fillOpacity={0.45} initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }} transition={{ delay: 1.5, duration: 0.7 }} style={{ transformBox: "fill-box", transformOrigin: "left center" }} />
+      <m.rect x={86} y={68} width={200} height={30} rx={3} fill="var(--color-dir-ink)" fillOpacity={0.85} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.8, duration: 1, ease: [0.22, 1, 0.36, 1] }} style={{ transformBox: "fill-box", transformOrigin: "left center" }} />
+      <m.rect x={288} y={68} width={84} height={30} rx={3} fill="var(--color-ash)" fillOpacity={0.45} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 1.5, duration: 0.7 }} style={{ transformBox: "fill-box", transformOrigin: "left center" }} />
       <g {...LABEL}>
         <m.text x={186} y={122} textAnchor="middle" fill="var(--color-dir-ink)" {...pop(1.6)}>FICA COM VOCÊ</m.text>
         <m.text x={330} y={122} textAnchor="middle" fill="var(--color-ash)" {...pop(1.9)}>IMPOSTOS</m.text>
@@ -181,7 +179,7 @@ export function Dialogue() {
         r={4}
         fill={color}
         initial={{ opacity: 0.2 }}
-        whileInView={{ opacity: [0.2, 1, 0.2] }}
+        animate={{ opacity: [0.2, 1, 0.2] }}
         transition={{ duration: 1.2, repeat: Infinity, delay: delay + i * 0.18, repeatDelay: 1.2 }}
       />
     ));
