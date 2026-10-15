@@ -217,16 +217,16 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
               animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
               exit="exit"
               transition={{ type: "spring", stiffness: 220, damping: 24 }}
-              className="relative max-h-full w-full overflow-y-auto overscroll-contain rounded-2xl border border-paper/25 bg-graphite-2 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-8"
+              className="relative max-h-full w-full overflow-y-auto overscroll-contain rounded-2xl border border-paper/25 bg-graphite-2 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-8 [@media(min-width:768px)_and_(max-height:800px)]:p-6"
             >
               <div className="flex items-center justify-between gap-4">
                 <span className="inline-flex items-center gap-2 rounded-full border border-paper/20 px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-paper/80">
                   Tema: {s.dimensionName}
                 </span>
-                <DimensionArt dimension={s.dimensionKey} className="h-12 w-[4.5rem] shrink-0 text-paper/75 md:h-20 md:w-28" />
+                <DimensionArt dimension={s.dimensionKey} className="h-12 w-[4.5rem] shrink-0 text-paper/75 md:h-20 md:w-28 [@media(min-width:768px)_and_(max-height:800px)]:h-12 [@media(min-width:768px)_and_(max-height:800px)]:w-[4.5rem]" />
               </div>
               <p className="kicker mt-3">Você concorda?</p>
-              <CardTitle className="mt-1.5 font-display text-[clamp(1.3rem,4.4vw,2.6rem)] font-semibold leading-[1.12] tracking-tight">
+              <CardTitle className="mt-1.5 font-display text-[clamp(1.3rem,4.4vw,2.6rem)] md:text-[clamp(1.3rem,min(4.4vw,5vh),2.6rem)] font-semibold leading-[1.12] tracking-tight">
                 “<Gloss text={s.text} />”
               </CardTitle>
               <p className="mt-3 max-w-2xl text-[0.95rem] text-paper/70 md:text-base">
@@ -275,7 +275,7 @@ export function YesNoFlow({ statements, claims, startKey }: { statements: Statem
                 animate={stamp ? { opacity: stamp === a ? 1 : 0.3 } : { opacity: 1 }}
                 className={`group relative flex h-[13svh] min-h-[4.5rem] max-h-32 flex-col items-center justify-center gap-1 overflow-hidden transition-colors ${on ? "bg-paper text-graphite" : "hover:bg-graphite-2"}`}
               >
-                <span className="display text-[clamp(2.2rem,9vw,4.8rem)]">{a === "agree" ? "Sim" : "Não"}</span>
+                <span className="display text-[clamp(2.2rem,9vw,4.8rem)] md:text-[clamp(2rem,min(9vw,8vh),4.8rem)]">{a === "agree" ? "Sim" : "Não"}</span>
                 <span className="kicker" style={{ color: "inherit", opacity: 0.75 }}>
                   {a === "agree" ? "Concordo" : "Discordo"} <span className="hidden md:inline">· tecla {a === "agree" ? "S" : "N"}</span>
                 </span>

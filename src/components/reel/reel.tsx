@@ -205,7 +205,7 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
 
         {/* Barra superior: uma linha fina de progresso de leitura + controles */}
         <div className="absolute inset-x-0 top-0 z-30 bg-gradient-to-b from-graphite via-graphite/80 to-transparent pb-6">
-          <div className="mx-auto max-w-5xl px-[var(--gutter)] pt-3" aria-hidden title={segments[seg]}>
+          <div className="px-[var(--gutter)] pt-3" aria-hidden title={segments[seg]}>
             <m.div
               key={pulse ? pulse.id : 0}
               className="h-[2px] overflow-hidden rounded-full bg-paper/15"
@@ -216,7 +216,7 @@ export function Reel({ keys, segs, segments, label, render, topLeft, topRight, b
               <m.div className="h-full origin-left bg-paper" animate={{ scaleX: progress }} initial={false} transition={{ type: "spring", stiffness: 160, damping: 26 }} />
             </m.div>
           </div>
-          <div className="mx-auto mt-2 flex max-w-5xl items-center justify-between gap-2 px-[var(--gutter)]">
+          <div className="mt-2 flex items-center justify-between gap-2 px-[var(--gutter)]">
             <div className="flex min-w-0 items-center gap-3">{topLeft}</div>
             <div className="flex items-center gap-2">{topRight}</div>
           </div>
