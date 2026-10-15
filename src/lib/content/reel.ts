@@ -11,6 +11,29 @@ import type { CandidateReelData, CandidateSlide, CandidateSummary, SideReelData,
 
 type Side = "esquerda" | "direita";
 
+/**
+ * "De quem é essa ideia?": os argumentos favoráveis (camada rasa) dos dois
+ * lados, numa ordem fixa e igual nos dois reels — sem padrão óbvio, com o
+ * mesmo número de frases de cada lado. A dica é a primeira frase do argumento.
+ */
+const WHOSE_ORDER = ["esquerda", "direita", "direita", "esquerda", "direita", "esquerda"] as const;
+function whoseItems(left: Block[], right: Block[]) {
+  const pro = (bs: Block[]) => bs.flatMap((b) => (b.type === "arguments" && b.kind === "PRO" && b.layer !== "deep" ? b.items : []));
+  const firstSentence = (t: string) => (t.match(/^.*?[.!?](\s|$)/)?.[0] ?? t).trim();
+  const pools = { esquerda: pro(left), direita: pro(right) };
+  const items: { text: string; side: "esquerda" | "direita"; hint: string }[] = [];
+  const take = (side: "esquerda" | "direita") => {
+    const it = pools[side].shift();
+    if (it) items.push({ text: it.title, side, hint: firstSentence(it.body) });
+  };
+  for (const side of WHOSE_ORDER) take(side);
+  while (pools.esquerda.length || pools.direita.length) {
+    take("esquerda");
+    take("direita");
+  }
+  return items;
+}
+
 /** Parágrafo que abre com um rótulo em negrito ("**Primeiro**, …"). */
 const STEP = /^\*\*([^*]{1,40})\*\*[,:]?\s*/;
 /** Limite de texto por tela: cada tela cabe inteira, sem rolar. */
@@ -67,7 +90,7 @@ function blockSlides(block: Block, bundle: ChapterBundle, seg: number, base: str
       return block.claimKeys.map((ck, i) => ({ key: k(`fact-${i}`), seg, layer, kind: "fact" as const, title: block.title, claim: claim(ck) }));
     case "didYouKnow": {
       const c = bundle.curiosities[block.curiositySlug];
-      return c ? [{ key: k("dyk"), seg, layer, kind: "curiosity", text: c.text, claim: claim(c.claimKey ?? undefined) }] : [];
+      return c ? [{ key: k("dyk"), seg, layer, kind: "curiosity", slug: c.slug, text: c.text, claim: claim(c.claimKey ?? undefined) }] : [];
     }
     case "example":
       return [{ key: k("ex"), seg, layer, kind: "example", title: block.title, body: block.body, art: block.art }];
@@ -239,6 +262,12 @@ async function buildSideReel(side: Side): Promise<SideReelData | null> {
       slides.push(...made);
     });
     if (ch.deepDive) slides.push({ key: `${ch.slug}-deepdive`, seg, layer: "deep", kind: "text", title: "Para ir além", body: ch.deepDive });
+    // Fim dos argumentos: o jogo "De quem é essa ideia?", com os dois lados misturados.
+    // É igual nos dois reels — quem já jogou de um lado não joga de novo no outro (shared).
+    if (ch.slug === "argumentos") {
+      const items = side === "esquerda" ? whoseItems(ch.blocks, others) : whoseItems(others, ch.blocks);
+      if (items.length >= 4) slides.push({ key: `${ch.slug}-whose`, seg, layer: "surface", kind: "whose", items, shared: true });
+    }
     // Sem tela de "capítulo concluído": a troca de capítulo é sinalizada no próprio reel (leitura contínua).
   });
   slides.push({ key: "end", seg: Math.max(0, bundles.length - 1), layer: "surface", kind: "end" });
@@ -300,7 +329,7 @@ async function buildCandidateReel(slug: string): Promise<CandidateReelData | nul
  * Versões em cache (5 min, e invalidadas pela tag "content" quando o painel publica algo):
  * o reel junta muitos capítulos, e páginas com parâmetros de compartilhamento são dinâmicas.
  */
-export const getSideReel = (side: Side) => unstable_cache(() => buildSideReel(side), ["side-reel", side, "v7"], { revalidate: 300, tags: ["content"] })();
+export const getSideReel = (side: Side) => unstable_cache(() => buildSideReel(side), ["side-reel", side, "v8"], { revalidate: 300, tags: ["content"] })();
 export const getCandidateReel = (slug: string) => unstable_cache(() => buildCandidateReel(slug), ["candidate-reel", slug, "v4"], { revalidate: 300, tags: ["content"] })();
 
 /** Soma do tempo estimado da camada essencial. */

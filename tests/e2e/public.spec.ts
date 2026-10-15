@@ -257,6 +257,57 @@ test.describe("experiência pública", () => {
     expect(await scroller.evaluate((el) => el.scrollTop)).toBe(before);
   });
 
+  test("jogo 'De quem é essa ideia?': mistura os dois lados, revela e conta os acertos", async ({ page }) => {
+    await page.goto("/explorar/esquerda#argumentos-whose", { waitUntil: "networkidle" });
+    const g = page.locator("#argumentos-whose");
+    // espera o reel se posicionar na tela do jogo (como alguém que chegou nela)
+    await expect(page.locator("section[data-active=true]")).toHaveAttribute("id", "argumentos-whose", { timeout: 15_000 });
+    await page.waitForTimeout(1000);
+    await expect(g.getByText(/de quem é essa ideia/i)).toBeVisible();
+    const sides = new Set<string>();
+    for (let k = 0; k < 6; k++) {
+      const btn = g.getByRole("button", { name: "Esquerda", exact: true });
+      // repete o toque até a página terminar de carregar (antes disso ele não é ouvido)
+      await expect(async () => {
+        if (await btn.isVisible()) await btn.click({ timeout: 2000 });
+        await expect(g.getByText(/argumento da (esquerda|direita):/i)).toBeVisible({ timeout: 1500 });
+      }).toPass({ timeout: 15_000 });
+      sides.add((await g.getByText(/argumento da (esquerda|direita):/i).innerText()).match(/esquerda|direita/i)![0].toLowerCase());
+      // clique direto: com o encolhimento automático (zoom), o Playwright calcula mal a posição do botão
+      await g.getByRole("button", { name: /próxima|ver quantas acertei/i }).dispatchEvent("click");
+      // a carta seguinte entra (a anterior sai antes): espera os botões de chute de novo
+      if (k < 5) await expect(g.getByRole("button", { name: "Esquerda", exact: true })).toBeVisible();
+    }
+    expect(sides).toEqual(new Set(["esquerda", "direita"]));
+    await expect(g.getByText(/de 6\.|todas/i)).toBeVisible();
+  });
+
+  test("cards para compartilhar: 'Você sabia?', fato e 'Eu conheci os dois lados'", async ({ page, request }) => {
+    await page.goto("/explorar/esquerda", { waitUntil: "networkidle" });
+    const ids = await page.$$eval("section[id]", (els) => els.map((e) => e.id));
+    const dyk = ids.find((i) => i.endsWith("-dyk"))!;
+    const story = await page.locator(`#${dyk} a[download]`).getAttribute("href");
+    expect(story).toMatch(/^\/og\/sabia\/[a-z0-9-]+\?formato=story$/);
+    for (const url of [story!, story!.replace("?formato=story", ""), "/og/fato/origem-assembleia-1789", "/og/dois-lados?formato=story"]) {
+      const res = await request.get(url);
+      expect(res.status(), url).toBe(200);
+      expect(res.headers()["content-type"]).toContain("image/png");
+    }
+    const landing = await request.get(story!.replace("/og/sabia/", "/sabia/").replace("?formato=story", ""));
+    expect(landing.status()).toBe(200);
+  });
+
+  test("quem terminou os dois lados vê a tela de conclusão", async ({ page }) => {
+    const ch = ["origens", "o-que-defende", "argumentos", "criticas", "no-brasil", "o-outro-lado", "o-que-voce-pensa"];
+    await page.addInitScript((list) => {
+      const visited = ["esquerda", "direita"].flatMap((side, s) => list.map((chapter, i) => ({ side, chapter, at: s * 10 + i })));
+      localStorage.setItem("doislados:journey:v1", JSON.stringify({ answers: {}, visited }));
+    }, ch);
+    await page.goto("/explorar/direita#end", { waitUntil: "networkidle" });
+    await expect(page.getByText("Missão cumprida")).toBeVisible();
+    await expect(page.locator("#end a[download]")).toHaveAttribute("href", "/og/dois-lados?formato=story");
+  });
+
   test("mitos: um palpite vira o cartão com o veredito, e a próxima afirmação entra", async ({ page }) => {
     await page.goto("/mitos", { waitUntil: "networkidle" });
     const card = page.locator("article").first();

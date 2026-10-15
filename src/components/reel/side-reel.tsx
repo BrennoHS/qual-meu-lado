@@ -20,6 +20,7 @@ import { Kinetic, Reel, pop, rise, stage, useReel } from "./reel";
 import { DeepSwitch, ReelClose } from "./controls";
 import { ResumePill } from "./resume-pill";
 import { ShareChip } from "./share-chip";
+import { ShareRow } from "@/components/share/share-row";
 import { INTERACTIVE_KINDS, sideSlideSpeech } from "@/lib/reel/speech";
 import { saveProgress } from "@/lib/reel/progress";
 import { haptic } from "@/lib/haptics";
@@ -251,8 +252,17 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
           <m.p variants={rise} className="mt-4 font-display text-[clamp(1.5rem,4vw,2.6rem)] leading-tight tracking-tight">
             <Gloss text={slide.claim?.text ?? "Informação em verificação editorial."} />
           </m.p>
-          <m.div variants={rise} className="mt-6">
+          <m.div variants={rise} className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-1">
             <SourceButton claim={slide.claim ?? undefined} />
+            {slide.claim && !slide.claim.isDemo && (
+              <ShareRow
+                path={`/fato/${slide.claim.key}`}
+                title="Fato com fonte · DOIS LADOS"
+                text={`${slide.claim.text} Veja a fonte e os dois lados:`}
+                storyHref={`/og/fato/${slide.claim.key}?formato=story`}
+                fileName={`dois-lados-fato-${slide.claim.key}.png`}
+              />
+            )}
           </m.div>
         </Stage>
       );
@@ -273,11 +283,16 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
           <m.p variants={rise} className="relative mt-4 font-display text-[clamp(1.5rem,4vw,2.6rem)] leading-tight tracking-tight">
             <Gloss text={slide.text} />
           </m.p>
-          {slide.claim && (
-            <m.div variants={rise} className="mt-5">
-              <SourceButton claim={slide.claim} />
-            </m.div>
-          )}
+          <m.div variants={rise} className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-1">
+            {slide.claim && <SourceButton claim={slide.claim} />}
+            <ShareRow
+              path={`/sabia/${slide.slug}`}
+              title="Você sabia? · DOIS LADOS"
+              text={`Você sabia? ${slide.text} Veja a fonte e os dois lados:`}
+              storyHref={`/og/sabia/${slide.slug}?formato=story`}
+              fileName={`dois-lados-voce-sabia-${slide.slug}.png`}
+            />
+          </m.div>
         </Stage>
       );
     case "example":
@@ -314,6 +329,8 @@ function SideSlideView({ slide, active, data, sponsor }: { slide: SideSlide; act
       return <CounterpointSlide slide={slide} active={active} data={data} />;
     case "themes":
       return <ThemesSlide slide={slide} active={active} data={data} />;
+    case "whose":
+      return <WhoseSlide slide={slide} active={active} />;
     case "explore":
       return (
         <Stage active={active}>
@@ -1173,6 +1190,140 @@ function ThemesSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind
 }
 
 
+const SIDE_NAME = { esquerda: "Esquerda", direita: "Direita" } as const;
+
+/**
+ * "De quem é essa ideia?": uma frase por vez (argumentos dos dois lados,
+ * misturados), a pessoa chuta o lado e vê a resposta com a primeira frase do
+ * argumento. No fim, quantas acertou — só para ela, nada é salvo.
+ */
+function WhoseSlide({ slide, active }: { slide: Extract<SideSlide, { kind: "whose" }>; active: boolean }) {
+  const n = slide.items.length;
+  const [i, setI] = useState(0);
+  const [guess, setGuess] = useState<"esquerda" | "direita" | null>(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+  const { next } = useReel();
+  useEffect(() => {
+    if (active) return;
+    setI(0);
+    setGuess(null);
+    setScore(0);
+    setDone(false);
+  }, [active]);
+  const it = slide.items[i];
+  const right = guess === it?.side;
+
+  function answer(s: "esquerda" | "direita") {
+    if (guess) return;
+    setGuess(s);
+    if (s === it.side) setScore((v) => v + 1);
+    haptic(s === it.side ? "success" : "tap");
+  }
+  function advance() {
+    haptic("tap");
+    if (i + 1 >= n) setDone(true);
+    else {
+      setI(i + 1);
+      setGuess(null);
+    }
+  }
+  function restart() {
+    haptic("tap");
+    setI(0);
+    setGuess(null);
+    setScore(0);
+    setDone(false);
+  }
+
+  return (
+    <Stage active={active} className="max-w-2xl">
+      <m.div variants={rise} className="flex items-center justify-between gap-3">
+        <div>
+          <p className="kicker text-paper">De quem é essa ideia?</p>
+          <p className="mt-1 text-[0.72rem] text-ash">Jogo opcional · não entra no teste de afinidade · role para pular</p>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5" aria-label={`${Math.min(i + (guess ? 1 : 0), n)} de ${n}`}>
+          {slide.items.map((_, k) => (
+            <span key={k} className={`h-1.5 rounded-full transition-all ${k === i && !done ? "w-5 bg-paper" : k < i || done || (k === i && guess) ? "w-1.5 bg-paper/60" : "w-1.5 bg-paper/20"}`} />
+          ))}
+        </span>
+      </m.div>
+
+      <AnimatePresence mode="wait" initial={false}>
+        {!done ? (
+          <m.div
+            key={i}
+            initial={{ opacity: 0, x: 60, rotate: 3 }}
+            animate={{ opacity: 1, x: 0, rotate: 0 }}
+            exit={{ opacity: 0, x: -60, rotate: -3 }}
+            transition={{ type: "spring", stiffness: 180, damping: 20 }}
+            className={`mt-5 border bg-graphite-2/90 p-6 transition-colors md:p-8 ${guess && right ? "border-[#5fd38d]" : "border-paper/25"}`}
+          >
+            <p className="font-display text-[clamp(1.6rem,5vw,2.6rem)] leading-tight tracking-tight">“{it.text}”</p>
+            <AnimatePresence mode="wait" initial={false}>
+              {!guess ? (
+                <m.div key="ask" exit={{ opacity: 0 }} className="mt-6">
+                  <p className="text-paper/75">Esquerda ou direita?</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:max-w-sm">
+                    {(["esquerda", "direita"] as const).map((s) => (
+                      <m.button
+                        key={s}
+                        type="button"
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => answer(s)}
+                        data-side={s}
+                        className="min-h-14 border border-[var(--accent)] font-display text-lg transition-colors hover:bg-[var(--accent)]"
+                      >
+                        {SIDE_NAME[s]}
+                      </m.button>
+                    ))}
+                  </div>
+                </m.div>
+              ) : (
+                <m.div key="answer" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6" aria-live="polite">
+                  <m.span
+                    initial={{ scale: 1.6, rotate: -10, opacity: 0 }}
+                    animate={{ scale: 1, rotate: -3, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 16 }}
+                    className={`inline-block border-2 px-3 py-1 font-mono text-sm font-bold uppercase tracking-[0.16em] ${right ? "border-[#5fd38d] text-[#5fd38d]" : "border-paper/60 text-paper/85"}`}
+                  >
+                    {right ? `Acertou · é da ${SIDE_NAME[it.side].toLowerCase()}` : `Não foi · é da ${SIDE_NAME[it.side].toLowerCase()}`}
+                  </m.span>
+                  <p className="mt-4 leading-relaxed text-paper/85">
+                    <span className="text-paper">Argumento da {SIDE_NAME[it.side].toLowerCase()}:</span> {it.hint}
+                  </p>
+                  <button type="button" onClick={advance} className="btn btn-solid mt-5">
+                    {i + 1 >= n ? "Ver quantas acertei" : "Próxima"} <ChevronRight aria-hidden className="h-4 w-4" />
+                  </button>
+                </m.div>
+              )}
+            </AnimatePresence>
+          </m.div>
+        ) : (
+          <m.div key="done" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="mt-6 text-center md:text-left">
+            <p className="display text-[clamp(3rem,12vw,6rem)] leading-none">
+              {score}
+              <span className="text-paper/40">/{n}</span>
+            </p>
+            <p className="mt-4 max-w-xl text-lg text-paper/85">
+              {score === n ? "Você acertou todas." : `Você acertou ${score} de ${n}.`} Depois de ler, parece óbvio — antes, nem sempre. É para isso que serve conhecer os dois lados.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3 md:justify-start">
+              <button type="button" onClick={() => next()} className="btn btn-solid">
+                Continuar <ChevronDown aria-hidden className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={restart} className="btn btn-ghost">
+                <RotateCcw aria-hidden className="h-4 w-4" /> Jogar de novo
+              </button>
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
+    </Stage>
+  );
+}
+
 const CONFETTI = Array.from({ length: 16 }, (_, i) => {
   const a = (i / 16) * Math.PI * 2;
   return { x: Math.round(Math.cos(a) * (90 + (i % 3) * 40)), y: Math.round(Math.sin(a) * (70 + (i % 4) * 30)), c: i % 3 === 0 ? "var(--color-esq)" : i % 3 === 1 ? "var(--color-dir)" : "var(--color-paper)", r: (i * 47) % 360 };
@@ -1224,6 +1375,87 @@ function CheckpointSlide({ slide, active, sponsor, data }: { slide: Extract<Side
   );
 }
 
+/**
+ * Missão cumprida: a pessoa percorreu os 7 capítulos dos DOIS lados.
+ * Confete, os capítulos de cada lado se marcando, um card para postar (que não
+ * revela opinião nenhuma) e o próximo passo: o teste — ou o indicador, se já fez.
+ */
+function BothSidesDone({ active, data }: { active: boolean; data: SideReelData }) {
+  const { answers } = useJourney();
+  const testDone = Object.keys(answers).length >= 24;
+  const n = data.chapters.length;
+  useEffect(() => {
+    if (!active) return;
+    const t = window.setTimeout(() => haptic("success"), 500);
+    return () => window.clearTimeout(t);
+  }, [active]);
+  const row = (side: "esquerda" | "direita", label: string, delay: number) => (
+    <div data-side={side} className="flex items-center justify-center gap-3">
+      <span className="w-20 text-right font-mono text-[0.7rem] uppercase tracking-[0.1em] text-[var(--accent-ink)]">{label}</span>
+      <span className="flex gap-1.5">
+        {Array.from({ length: n }).map((_, k) => (
+          <m.span
+            key={k}
+            className="grid h-6 w-6 place-items-center rounded-full bg-[var(--accent-ink)] text-graphite"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={active ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+            transition={{ delay: active ? delay + k * 0.07 : 0, type: "spring", stiffness: 380, damping: 18 }}
+          >
+            <Check aria-hidden className="h-3.5 w-3.5" strokeWidth={3} />
+          </m.span>
+        ))}
+      </span>
+    </div>
+  );
+  return (
+    <Stage active={active} className="text-center">
+      <div className="relative mx-auto h-10 w-10">
+        {CONFETTI.map((p, i) => (
+          <m.span
+            key={i}
+            aria-hidden
+            className="absolute left-1/2 top-1/2 h-2.5 w-1.5"
+            style={{ background: p.c }}
+            initial={{ x: 0, y: 0, opacity: 0, rotate: 0 }}
+            animate={active ? { x: p.x, y: p.y, opacity: [0, 1, 0], rotate: p.r } : { x: 0, y: 0, opacity: 0 }}
+            transition={{ delay: active ? 0.2 : 0, duration: 1.2, ease: "easeOut" }}
+          />
+        ))}
+      </div>
+      <m.p variants={rise} className="kicker">Missão cumprida</m.p>
+      <h2 className="display mt-3 text-[clamp(2.2rem,7vw,4.6rem)]">
+        <Kinetic text="Você conheceu os dois lados." active={active} step={0.07} />
+      </h2>
+      <m.div variants={rise} className="mt-7 space-y-2.5" aria-label={`${n} capítulos da esquerda e ${n} da direita`}>
+        {row("esquerda", "Esquerda", 0.5)}
+        {row("direita", "Direita", 0.9)}
+      </m.div>
+      <m.p variants={rise} className="mx-auto mt-6 max-w-xl text-lg text-paper/85">
+        As ideias, os melhores argumentos e as críticas de cada um — com fontes. Agora dá para concordar ou discordar de qualquer um sabendo do que se fala.
+      </m.p>
+      <m.div variants={rise} className="mt-7 flex flex-wrap justify-center gap-3">
+        <TLink href={testDone ? "/afinidades/resultado" : "/afinidades"} scene={{ label: "Sua afinidade", sub: testDone ? "Seu indicador" : "24 afirmações · sim ou não", tone: "neutral" }} className="btn btn-afinidade">
+          <span aria-hidden className="inline-flex h-3 w-5 overflow-hidden">
+            <span className="h-full w-1/2 bg-esq" />
+            <span className="h-full w-1/2 bg-dir" />
+          </span>
+          {testDone ? "Ver meu indicador →" : "Descobrir minha afinidade →"}
+        </TLink>
+        <Link href="/?ver=propostas" className="btn">Propostas do 2º turno</Link>
+      </m.div>
+      <m.div variants={rise} className="mt-5 flex justify-center">
+        <ShareRow
+          path="/"
+          title="Eu conheci os dois lados · DOIS LADOS"
+          text="Conheci os dois lados: o que a esquerda e a direita defendem, com fontes e sem torcida. E você?"
+          storyHref="/og/dois-lados?formato=story"
+          fileName="dois-lados-eu-conheci.png"
+        />
+      </m.div>
+    </Stage>
+  );
+}
+
 function EndSlide({ active, data, sponsor }: { active: boolean; data: SideReelData; sponsor?: React.ReactNode }) {
   const other = data.other;
   const { visited } = useJourney();
@@ -1231,6 +1463,10 @@ function EndSlide({ active, data, sponsor }: { active: boolean; data: SideReelDa
   useEffect(() => setMounted(true), []);
   // Já passou pelo outro lado? Então o próximo passo é descobrir o próprio lado.
   const sawOther = mounted && visited.some((v) => v.side === other.slug);
+  const chaptersSeen = (side: string) => new Set(visited.filter((v) => v.side === side).map((v) => v.chapter)).size;
+  const complete = mounted && chaptersSeen(other.slug) >= data.chapters.length && chaptersSeen(data.side) >= data.chapters.length;
+
+  if (complete) return <BothSidesDone active={active} data={data} />;
 
   if (sawOther) {
     return (

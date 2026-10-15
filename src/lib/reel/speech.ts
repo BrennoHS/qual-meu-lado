@@ -24,6 +24,8 @@ export function sideSlideSpeech(s: SideSlide, ctx: { sideName: string; otherName
       return `Fato com fonte: ${s.claim?.text ?? "informação em verificação."}`;
     case "curiosity":
       return `Você sabia? ${s.text}`;
+    case "whose":
+      return `De quem é essa ideia? Um jogo rápido: para cada frase, diga se ela é um argumento da esquerda ou da direita.`;
     case "example":
       return `${s.title}. ${plainText(s.body)}`;
     case "pulse":
@@ -63,7 +65,7 @@ export function candidateSlideSpeech(s: CandidateSlide, c: CandidateSummary, riv
 }
 
 /** Telas em que a pessoa precisa agir: o modo "ouvir" para e espera. */
-export const INTERACTIVE_KINDS = new Set(["pulse", "conflict", "themes"]);
+export const INTERACTIVE_KINDS = new Set(["pulse", "conflict", "themes", "whose"]);
 
 const words = (t: string) => t.split(/\s+/).filter(Boolean).length;
 

@@ -43,7 +43,9 @@ export type SideSlide = Base &
     | { kind: "illustration"; name: IllustrationName; title?: string; caption?: string }
     | { kind: "glossary"; title?: string; items: { term: string; definition: string }[] }
     | { kind: "fact"; title?: string; claim: ClaimView | null }
-    | { kind: "curiosity"; text: string; claim: ClaimView | null }
+    | { kind: "curiosity"; slug: string; text: string; claim: ClaimView | null }
+    /** Jogo "De quem é essa ideia?": argumentos dos dois lados, embaralhados (igual nos dois reels). */
+    | { kind: "whose"; items: { text: string; side: "esquerda" | "direita"; hint: string }[] }
     | { kind: "example"; title: string; body: string; art?: string }
     | { kind: "pulse"; statement: StatementView; prompt?: string }
     | { kind: "conflict"; title: string; values: [string, string]; scenario: string; tension: string }
