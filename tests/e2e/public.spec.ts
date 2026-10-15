@@ -233,6 +233,30 @@ test.describe("experiência pública", () => {
     await expect(label).toHaveText(/primeiro/i);
   });
 
+  test("carrossel de temas: arrastar na diagonal troca o tema sem rolar a página (celular)", async ({ page, context, isMobile }) => {
+    test.skip(!isMobile, "gesto de toque");
+    await page.goto("/explorar/esquerda#o-que-defende-3-themes", { waitUntil: "networkidle" });
+    const slide = page.locator("#o-que-defende-3-themes");
+    const card = slide.locator("article[aria-hidden=false]");
+    await expect(card.locator("h3")).toHaveText(/papel do estado/i);
+    await page.waitForTimeout(1500); // carregado e montado
+    const scroller = page.locator(".reel-scroller");
+    const before = await scroller.evaluate((el) => el.scrollTop);
+    const box = (await card.boundingBox())!;
+    const cdp = await context.newCDPSession(page);
+    const x0 = box.x + box.width * 0.8;
+    const y0 = box.y + 80;
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: x0, y: y0 }] });
+    for (let k = 1; k <= 10; k++) {
+      // ~40° de inclinação: mais de lado que de pé
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x0 - k * 20, y: y0 + k * 16 }] });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect(card.locator("h3")).toHaveText(/economia e mercado/i);
+    expect(await scroller.evaluate((el) => el.scrollTop)).toBe(before);
+  });
+
   test("mitos: um palpite vira o cartão com o veredito, e a próxima afirmação entra", async ({ page }) => {
     await page.goto("/mitos", { waitUntil: "networkidle" });
     const card = page.locator("article").first();

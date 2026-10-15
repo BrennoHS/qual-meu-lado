@@ -398,18 +398,16 @@ function CoverSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind:
  * Os pontos do capítulo, um por vez (como um story): 12 s cada.
  * Tudo numa linha só acima do texto — ‹ barras › e pausa —, e o próprio texto
  * responde ao toque: lateral esquerda volta, o resto adianta, segurar pausa.
- * A dica de uso aparece só na primeira vez (fica salva neste navegador).
+ * Sem textos de dica: a capa fica limpa (a pausa aparece no próprio ícone).
  */
 const POINT_MS = 12_000;
 const TICK_MS = 100;
-const HINT_KEY = "doislados:dica-story";
 
 function KeyPointsStory({ points, active }: { points: string[]; active: boolean }) {
   const [i, setI] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [held, setHeld] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [hint, setHint] = useState(false);
   const press = useRef<{ timer: number | null; hold: boolean } | null>(null);
   const last = points.length - 1;
   const stopped = !active || held || paused;
@@ -420,24 +418,6 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
     setElapsed(0);
     setPaused(false);
     setHeld(false);
-  }, [active]);
-
-  // dica só na primeira capa vista
-  useEffect(() => {
-    if (!active) return;
-    let seen = false;
-    try {
-      seen = localStorage.getItem(HINT_KEY) === "1";
-    } catch {}
-    if (seen) return;
-    setHint(true);
-    const t = window.setTimeout(() => {
-      setHint(false);
-      try {
-        localStorage.setItem(HINT_KEY, "1");
-      } catch {}
-    }, 7000);
-    return () => window.clearTimeout(t);
   }, [active]);
 
   useEffect(() => {
@@ -477,7 +457,7 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
         <button type="button" onClick={() => go(i - 1)} disabled={i === 0} aria-label="Ponto anterior" className={edge}>
           <ChevronLeft aria-hidden className="h-4 w-4" />
         </button>
-        <div className="flex flex-1 gap-1.5" aria-hidden>
+        <div className={`flex flex-1 gap-1.5 transition-opacity ${frozen ? "opacity-50" : ""}`} aria-hidden>
           {points.map((_, k) => (
             <span key={k} className="h-[3px] flex-1 overflow-hidden rounded-full bg-paper/15">
               <span
@@ -490,8 +470,8 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
         <button type="button" onClick={() => go(i + 1)} disabled={i === last} aria-label="Próximo ponto" className={edge}>
           <ChevronRight aria-hidden className="h-4 w-4" />
         </button>
-        <button type="button" onClick={() => setPaused((v) => !v)} aria-label={paused ? "Continuar" : "Pausar"} aria-pressed={paused} className={edge}>
-          {paused ? <Play aria-hidden className="h-3.5 w-3.5" /> : <Pause aria-hidden className="h-3.5 w-3.5" />}
+        <button type="button" onClick={() => setPaused((v) => !v)} aria-label={frozen ? "Continuar" : "Pausar"} aria-pressed={frozen} className={edge}>
+          {frozen ? <Play aria-hidden className="h-3.5 w-3.5" /> : <Pause aria-hidden className="h-3.5 w-3.5" />}
         </button>
       </div>
 
@@ -536,20 +516,6 @@ function KeyPointsStory({ points, active }: { points: string[]; active: boolean 
         </AnimatePresence>
       </div>
 
-      {/* só aparece quando ajuda: na primeira vez, ou enquanto está pausado */}
-      <AnimatePresence initial={false}>
-        {(hint || frozen) && (
-          <m.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="mt-1 font-mono text-[0.66rem] uppercase tracking-[0.08em] text-ash"
-            aria-live="polite"
-          >
-            {frozen ? <span className="text-paper">Pausado{held ? " · solte para seguir" : ""}</span> : "Toque nos lados para trocar · segure para ler"}
-          </m.p>
-        )}
-      </AnimatePresence>
     </m.div>
   );
 }
@@ -938,6 +904,37 @@ function ThemesSlide({ slide, active, data }: { slide: Extract<SideSlide, { kind
     const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  // Tolerância para arrastar de lado: o navegador decide cedo se o gesto é
+  // rolagem vertical. Aqui, se o dedo anda mais de lado que de pé (até ~60° de
+  // inclinação), a página não rola e o cartão desliza; senão, rola normal.
+  useEffect(() => {
+    const el = frame.current;
+    if (!el) return;
+    let sx = 0;
+    let sy = 0;
+    let lock: "x" | "y" | null = null;
+    const start = (e: TouchEvent) => {
+      sx = e.touches[0].clientX;
+      sy = e.touches[0].clientY;
+      lock = null;
+    };
+    const move = (e: TouchEvent) => {
+      const dx = Math.abs(e.touches[0].clientX - sx);
+      const dy = Math.abs(e.touches[0].clientY - sy);
+      if (!lock) {
+        if (dx < 4 && dy < 4) return;
+        lock = dx >= dy * 0.58 ? "x" : "y";
+      }
+      if (lock === "x" && e.cancelable) e.preventDefault();
+    };
+    el.addEventListener("touchstart", start, { passive: true });
+    el.addEventListener("touchmove", move, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", start);
+      el.removeEventListener("touchmove", move);
+    };
   }, []);
 
   const cardW = width ? (width < 640 ? width * 0.86 : Math.min(width * 0.8, 720)) : 0;
