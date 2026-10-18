@@ -115,6 +115,10 @@ Contamos visitas de forma **agregada e anônima** com o Web Analytics e o Speed 
 
 Antes de cada envio, o próprio site **corta a parte do endereço depois de "?"** (onde links compartilhados levam dados de resultado), e quem liga "Global Privacy Control" ou "Do Not Track" no navegador **não é contado**. Nada disso tem ligação com suas respostas, que nunca saem do seu navegador.
 
+## Vídeos do YouTube (página do debate)
+
+Na página do debate, a transmissão é da emissora, exibida pelo player do YouTube (Google) em modo de privacidade. O player só carrega quando você clica em assistir; antes disso, nada é enviado ao Google. A partir do clique, vale também a política de privacidade do YouTube.
+
 ## Medição própria dos reels (hoje: desligada)
 
 O site também tem uma medição própria, **agregada e anônima**, desligada por padrão. Se for ativada — só depois de parecer jurídico —, ela contará apenas até qual tela os reels são vistos, por dia: sem cookies, sem IP, sem identificador e sem ligação com respostas. Nas propostas do 2º turno, conta só o tema, nunca a candidatura. Navegadores com "Global Privacy Control" ou "Do Not Track" ligados ficam fora. Os números servem apenas para melhorar o conteúdo e não são divulgados. Se ela for ativada, esta seção será atualizada com a data.

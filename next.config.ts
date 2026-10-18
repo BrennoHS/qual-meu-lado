@@ -14,6 +14,8 @@ const csp = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
+  // só o player do YouTube em modo de privacidade (página /debate), e só depois do clique
+  "frame-src https://www.youtube-nocookie.com",
   "font-src 'self'",
   "connect-src 'self'",
   "frame-ancestors 'none'",

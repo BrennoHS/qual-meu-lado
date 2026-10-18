@@ -475,6 +475,17 @@ test.describe("segurança", () => {
     await expect(page.locator("form [role=alert], p[role=alert]").first()).toHaveText(/e-mail ou senha incorretos|muitas tentativas/i);
   });
 
+  test("debate: o player do YouTube só carrega depois do clique (privacidade)", async ({ page }) => {
+    const yt: string[] = [];
+    page.on("request", (r) => /youtube-nocookie|googlevideo/.test(r.url()) && yt.push(r.url()));
+    await page.goto("/debate", { waitUntil: "networkidle" });
+    await expect(page.locator("iframe")).toHaveCount(0);
+    expect(yt).toHaveLength(0);
+    await page.getByRole("button", { name: /assistir:/i }).click();
+    await expect(page.locator('iframe[src^="https://www.youtube-nocookie.com/embed/"]')).toHaveCount(1);
+    await expect(page.getByRole("link", { name: /assistir no youtube/i })).toHaveAttribute("href", /youtube\.com\/watch/);
+  });
+
   test("cabeçalhos de segurança presentes", async ({ request }) => {
     const res = await request.get("/");
     expect(res.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
